@@ -1,0 +1,23 @@
+# Strict pre-commit + pre-push gates.
+#
+# pre-commit  — fast: format the staged surface, then typecheck
+# pre-push    — fuller gate: typecheck + tests before remote sees anything
+
+pre-commit:
+  parallel: true
+  commands:
+    format:
+      glob: "*.{ts,tsx,js,jsx,json,css,md,yaml,yml,nix}"
+      run: treefmt --fail-on-change {staged_files}
+      stage_fixed: true
+    typecheck:
+      glob: "*.{ts,tsx}"
+      run: bun run typecheck
+
+pre-push:
+  parallel: true
+  commands:
+    typecheck:
+      run: bun run typecheck
+    test:
+      run: bun run test

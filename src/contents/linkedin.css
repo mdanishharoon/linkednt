@@ -1,0 +1,299 @@
+/* ============================================================================
+   Deslop button (in the LinkedIn action bar)
+   ============================================================================ */
+
+.lo-deslop-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.lo-inline-bar {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  margin: 4px 0 2px;
+}
+
+.lo-deslop-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0a66c2;
+}
+
+.lo-deslop-btn:active {
+  transform: scale(0.98);
+}
+
+.lo-deslop-btn:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.lo-deslop-btn > span:first-child {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 999px;
+  background: #eef3f8;
+  color: #0a66c2;
+  font-size: 15px;
+  font-weight: 800;
+  transition: transform 220ms ease;
+}
+
+.lo-loading > span:first-child {
+  animation: lo-spin 900ms linear infinite;
+}
+
+/* ============================================================================
+   Rewrite card (inserted as sibling of the post text container)
+   ============================================================================ */
+
+.lo-card {
+  position: relative;
+  margin: 8px 0;
+  padding: 14px 16px 12px;
+  border: 1px solid #e1e4e8;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 6px 16px rgba(0, 0, 0, 0.06);
+  overflow: hidden; /* contains scan animation only; content never overflows because card grows */
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color: rgba(0, 0, 0, 0.9);
+  animation: lo-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.lo-card-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.lo-kicker {
+  margin: 0 0 7px;
+  color: #0a66c2;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.lo-card-error .lo-kicker {
+  color: #c4351c;
+}
+
+.lo-result {
+  margin: 0;
+  color: rgba(0, 0, 0, 0.88);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* Inline watermark that flows with the last line of the rewrite body. Even if
+   the footer is clipped or hidden by overlapping LinkedIn UI, this one survives
+   because it's part of the text content itself. */
+.lo-inline-watermark {
+  color: rgba(0, 0, 0, 0.32);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Footer holds the Show original button (left) and watermark (right). The
+   top border + comfortable padding gives the watermark its own visual lane,
+   so it never crowds the body text. */
+.lo-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 10px;
+  border-top: 1px solid #f0f1f3;
+  gap: 12px;
+}
+
+.lo-show-original {
+  min-height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(10, 102, 194, 0.08);
+  color: #0a66c2;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.lo-show-original:hover {
+  background: rgba(10, 102, 194, 0.16);
+}
+
+.lo-show-original:active {
+  transform: scale(0.98);
+}
+
+.lo-watermark {
+  color: rgba(0, 0, 0, 0.28);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  pointer-events: none;
+}
+
+/* ============================================================================
+   Loading state — scan animation + skeleton bars (no scroll, no fixed height)
+   ============================================================================ */
+
+.lo-card-loading .lo-card-inner {
+  min-height: 64px; /* keeps the loading state visually substantial */
+}
+
+.lo-scan {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    transparent 35%,
+    rgba(10, 102, 194, 0.08) 46%,
+    rgba(10, 102, 194, 0.16) 50%,
+    rgba(10, 102, 194, 0.08) 54%,
+    transparent 66%,
+    transparent 100%
+  );
+  transform: translateX(-70%);
+  animation: lo-scan 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.lo-skeleton {
+  position: relative;
+  z-index: 1;
+  width: 94%;
+  height: 13px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eef3f8, #dde8f0, #eef3f8);
+  background-size: 180% 100%;
+  animation: lo-shimmer 1.2s ease-in-out infinite;
+}
+
+.lo-skeleton.short {
+  width: 62%;
+  margin-top: 8px;
+}
+
+/* ============================================================================
+   Toast (for "Not enough slop to work with.")
+   ============================================================================ */
+
+.lo-toast {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 10;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: rgba(22, 18, 15, 0.94);
+  color: #f8fafc;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  animation: lo-enter 220ms ease both;
+}
+
+/* ============================================================================
+   Keyframes
+   ============================================================================ */
+
+@keyframes lo-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lo-scan {
+  0% {
+    transform: translateX(-70%);
+  }
+  100% {
+    transform: translateX(70%);
+  }
+}
+
+@keyframes lo-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+@keyframes lo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lo-deslop-btn,
+  .lo-deslop-btn > span:first-child,
+  .lo-show-original,
+  .lo-scan,
+  .lo-skeleton,
+  .lo-toast,
+  .lo-card {
+    animation: none;
+    transition: none;
+  }
+}

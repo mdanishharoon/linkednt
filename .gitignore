@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnp.*
+
+# Plasmo build output + cache
+.plasmo/
+build/
+out/
+dist/
+
+# Parcel / build caches
+.parcel-cache/
+.cache/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Test coverage
+coverage/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Nix
+result
+result-*
+.direnv/
+
+# Local notes / scratch (not for the repo)
+notes/
+TODO.local.md
