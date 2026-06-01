@@ -1,7 +1,7 @@
 # Strict pre-commit + pre-push gates for the linkednt monorepo.
 #
-# pre-commit  — fast: format the staged surface, then typecheck both packages
-# pre-push    — fuller gate: typecheck + tests across all packages
+# pre-commit  — fast: format the staged surface, typecheck + lint changed packages
+# pre-push    — fuller gate: typecheck + lint + tests across all packages
 
 pre-commit:
   parallel: true
@@ -16,11 +16,16 @@ pre-commit:
     typecheck-landing:
       glob: "packages/landing/**/*.{ts,tsx}"
       run: bun --filter '@linkednt/landing' typecheck
+    lint-landing:
+      glob: "packages/landing/**/*.{ts,tsx}"
+      run: bun --filter '@linkednt/landing' lint
 
 pre-push:
   parallel: true
   commands:
     typecheck:
       run: bun --filter '*' typecheck
+    lint-landing:
+      run: bun --filter '@linkednt/landing' lint
     test-extension:
       run: bun --filter '@linkednt/extension' test
