@@ -1,61 +1,19 @@
 {
-  "name": "linkednt",
-  "displayName": "linkednt",
-  "version": "0.0.1",
-  "description": "Unslop your linkedin feed",
+  "name": "linkednt-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "plasmo dev",
-    "build": "plasmo build",
-    "package": "plasmo package",
-    "typecheck": "tsc --noEmit",
     "format": "treefmt",
-    "test": "vitest run --reporter=dot",
-    "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest",
-    "check:no-eval": "bash scripts/check-no-eval.sh",
-    "check:permissions": "bash scripts/check-permissions.sh",
-    "check:cws": "bash scripts/check-cws-compliance.sh",
-    "ci": "bun run typecheck && bun run test && bun run check:cws"
-  },
-  "dependencies": {
-    "plasmo": "^0.90.0",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "@plasmohq/messaging": "^0.7.2",
-    "@plasmohq/storage": "^1.15.0",
-    "zod": "^3.25.76",
-    "lucide-react": "^1.16.0",
-    "clsx": "^2.1.1"
-  },
-  "devDependencies": {
-    "@types/chrome": "^0.0.268",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
-    "typescript": "^5.5.0",
-    "tailwindcss": "^3.4.0",
-    "postcss": "^8.4.0",
-    "autoprefixer": "^10.4.0",
-    "vitest": "^4.1.7",
-    "@vitest/coverage-v8": "^4.1.7",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/jest-dom": "^6.9.1",
-    "jsdom": "^29.1.1",
-    "vitest-chrome": "^0.1.0",
-    "webextension-polyfill": "^0.12.0",
-    "@types/webextension-polyfill": "^0.12.0"
-  },
-  "manifest": {
-    "host_permissions": [
-      "https://www.linkedin.com/*",
-      "https://api.groq.com/*"
-    ],
-    "permissions": [
-      "storage",
-      "alarms",
-      "identity"
-    ]
-  },
-  "plasmo": {
-    "srcDirectory": "./src"
+    "typecheck": "bun --filter '*' typecheck",
+    "test": "bun --filter '*' test",
+    "ext:dev": "bun --filter '@linkednt/extension' dev",
+    "ext:build": "bun --filter '@linkednt/extension' build",
+    "ext:typecheck": "bun --filter '@linkednt/extension' typecheck",
+    "ext:test": "bun --filter '@linkednt/extension' test",
+    "landing:dev": "bun --filter '@linkednt/landing' dev",
+    "landing:build": "bun --filter '@linkednt/landing' build",
+    "landing:typecheck": "bun --filter '@linkednt/landing' typecheck"
   }
 }

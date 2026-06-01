@@ -1,23 +1,26 @@
-# Strict pre-commit + pre-push gates.
+# Strict pre-commit + pre-push gates for the linkednt monorepo.
 #
-# pre-commit  — fast: format the staged surface, then typecheck
-# pre-push    — fuller gate: typecheck + tests before remote sees anything
+# pre-commit  — fast: format the staged surface, then typecheck both packages
+# pre-push    — fuller gate: typecheck + tests across all packages
 
 pre-commit:
   parallel: true
   commands:
     format:
-      glob: "*.{ts,tsx,js,jsx,json,css,md,yaml,yml,nix}"
+      glob: "*.{ts,tsx,js,jsx,mjs,json,css,md,yaml,yml,nix}"
       run: treefmt --fail-on-change {staged_files}
       stage_fixed: true
-    typecheck:
-      glob: "*.{ts,tsx}"
-      run: bun run typecheck
+    typecheck-extension:
+      glob: "packages/extension/**/*.{ts,tsx}"
+      run: bun --filter '@linkednt/extension' typecheck
+    typecheck-landing:
+      glob: "packages/landing/**/*.{ts,tsx}"
+      run: bun --filter '@linkednt/landing' typecheck
 
 pre-push:
   parallel: true
   commands:
     typecheck:
-      run: bun run typecheck
-    test:
-      run: bun run test
+      run: bun --filter '*' typecheck
+    test-extension:
+      run: bun --filter '@linkednt/extension' test

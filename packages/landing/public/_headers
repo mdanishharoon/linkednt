@@ -1,0 +1,15 @@
+# Cloudflare Pages headers — copied verbatim into out/_headers by Next.js.
+#
+# Next.js App Router's metadata files (opengraph-image.tsx, icon.tsx) emit
+# extension-less files (out/opengraph-image, out/icon). Cloudflare's default
+# Content-Type for extension-less files is application/octet-stream, which
+# stops OG / Twitter / iMessage scrapers from rendering the image preview.
+# Force image/png explicitly.
+
+/opengraph-image
+  Content-Type: image/png
+  Cache-Control: public, max-age=31536000, immutable
+
+/icon
+  Content-Type: image/png
+  Cache-Control: public, max-age=31536000, immutable

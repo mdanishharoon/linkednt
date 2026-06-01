@@ -1,10 +1,15 @@
 [global]
 excludes = [
   "node_modules/**",
+  "**/node_modules/**",
   ".plasmo/**",
   "build/**",
+  "**/.next/**",
+  "**/out/**",
   "dist/**",
   "bun.lockb",
+  "bun.lock",
+  "packages/landing/next-env.d.ts",
 ]
 
 [formatter.nixfmt]
@@ -19,6 +24,8 @@ includes = [
   "*.tsx",
   "*.js",
   "*.jsx",
+  "*.mjs",
+  "*.cjs",
   "*.css",
   "*.json",
   "*.md",

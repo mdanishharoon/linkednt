@@ -8,9 +8,16 @@ build/
 out/
 dist/
 
+# Next.js
+.next/
+next-env.d.ts
+
 # Parcel / build caches
 .parcel-cache/
 .cache/
+
+# Vercel
+.vercel/
 
 # Environment & secrets
 .env
