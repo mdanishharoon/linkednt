@@ -53,6 +53,10 @@ result
 result-*
 .direnv/
 
+# Supabase CLI local state (created by `supabase link`)
+supabase/.temp/
+packages/backend/supabase/.temp/
+
 # Local notes / scratch (not for the repo)
 notes/
 TODO.local.md
