@@ -1,11 +1,16 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging";
 
+import { decrementCachedBalance } from "~lib/account";
 import { getAccessToken } from "~lib/auth";
 import { getProvider } from "~lib/providers/registry";
 import { callProxyRewrite } from "~lib/proxy";
 import { rewrite } from "~lib/rewriter";
 import { getSettings } from "~lib/storage";
-import type { RewriteRequest, RewriteResponse } from "~lib/types";
+import {
+  MODE_CREDITS,
+  type RewriteRequest,
+  type RewriteResponse,
+} from "~lib/types";
 
 const LOG = "[linkednt:sw]";
 
@@ -36,6 +41,12 @@ const handler: PlasmoMessaging.MessageHandler<
       mode: body.mode,
       sessionJwt,
     });
+    if (result.ok && !result.cached) {
+      // Optimistic decrement — keeps the popup's credits counter accurate
+      // between fetches. Cache hits don't debit on the server, so we don't
+      // touch the local balance either.
+      void decrementCachedBalance(MODE_CREDITS[body.mode]);
+    }
     res.send(result);
     return;
   }

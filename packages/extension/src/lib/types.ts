@@ -4,6 +4,9 @@ export type Mode = "strip" | "summarise" | "roast";
 
 export const DEFAULT_MODE: Mode = "roast";
 
+// Must stay in sync with backend/_shared/types.ts — the server's MODE_CREDITS
+// is the source of truth for billing; this copy is only used for the popup's
+// optimistic UI decrement after a successful rewrite.
 export const MODE_CREDITS: Record<Mode, number> = {
   strip: 1,
   summarise: 2,
@@ -35,7 +38,10 @@ export type RewriteErrorCode =
   | "PROXY_UNAVAILABLE";
 
 export type RewriteResponse =
-  | { ok: true; rewrite: string; mode: Mode }
+  // `cached` is proxy-only — set by the edge function on rewrite_cache hits.
+  // BYOK responses omit it; the popup treats absence as "not cached" so the
+  // optimistic credits decrement only fires for fresh proxy generations.
+  | { ok: true; rewrite: string; mode: Mode; cached?: boolean }
   | { ok: false; error: string; code: RewriteErrorCode };
 
 export interface Settings {
@@ -84,3 +90,18 @@ export interface SignOutResponse {
 export interface SessionResponse {
   user: SessionUserShape | null;
 }
+
+// Account status — what /rpc/my_account_status returns, plus the cached
+// fetchedAt timestamp the popup uses for "Refreshed Xs ago" labels. Mirrors
+// lib/account.ts AccountStatus so the messaging boundary is typed.
+export interface AccountStatusShape {
+  email: string | null;
+  plan: "free" | "paid";
+  freeRemaining: number;
+  paidBalance: number;
+  fetchedAt: number;
+}
+
+export type AccountStatusResponse =
+  | { ok: true; status: AccountStatusShape; fromCache: boolean }
+  | { ok: false; code: string; error: string };

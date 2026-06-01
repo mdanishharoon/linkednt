@@ -233,6 +233,25 @@ function attachSettingsListener() {
       disable();
     }
   });
+
+  // Auth-state reactivity: if the user signs in (or out) from the popup
+  // while LinkedIn is open, sweep stale UNAUTHORIZED cards off the page so
+  // they don't have to refresh. onSettingsChange skips non-settings keys, so
+  // we listen directly on chrome.storage.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+    const sessionChange = changes["auth.session"];
+    if (!sessionChange) return;
+    const signedIn = sessionChange.newValue != null;
+    info("auth.session changed", { signedIn });
+    if (signedIn) {
+      document
+        .querySelectorAll<HTMLElement>(
+          `.${CARD_CLASS}[data-lo-error-code='UNAUTHORIZED']`,
+        )
+        .forEach((card) => card.remove());
+    }
+  });
 }
 
 function disable() {
@@ -476,7 +495,9 @@ async function deslopPost(post: HTMLElement, button: HTMLButtonElement) {
         error: response.error,
         ms,
       });
-      loadingCard.replaceWith(createErrorCard(response.error, ctx));
+      loadingCard.replaceWith(
+        createErrorCard(response.error, ctx, response.code),
+      );
     } else {
       stats.rewriteSuccess += 1;
       info("rewrite ok", {

@@ -70,9 +70,18 @@ export function createResultCard(text: string, ctx: CardContext): HTMLElement {
   return card;
 }
 
-export function createErrorCard(text: string, ctx: CardContext): HTMLElement {
+export function createErrorCard(
+  text: string,
+  ctx: CardContext,
+  code?: string,
+): HTMLElement {
   const card = makeCard("error", ctx);
   const inner = card.querySelector<HTMLElement>(".lo-card-inner")!;
+
+  // The error code lands on the card as a data attribute so the content
+  // script can find and dismiss stale auth errors (e.g. when the user signs
+  // in after seeing this card) without nuking every other card on the page.
+  if (code) card.setAttribute("data-lo-error-code", code);
 
   const kicker = document.createElement("p");
   kicker.className = "lo-kicker";

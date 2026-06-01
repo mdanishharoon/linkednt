@@ -1,4 +1,5 @@
 import type {
+  AccountStatusResponse,
   RewriteRequest,
   RewriteResponse,
   SessionResponse,
@@ -23,6 +24,10 @@ declare module "@plasmohq/messaging" {
     session: {
       request: undefined;
       response: SessionResponse;
+    };
+    "account-status": {
+      request: { force?: boolean } | undefined;
+      response: AccountStatusResponse;
     };
   }
 }
