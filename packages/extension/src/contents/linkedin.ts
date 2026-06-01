@@ -135,8 +135,10 @@ async function bootstrap() {
       settings: {
         enabled: settings.enabled,
         mode: settings.mode,
-        hasApiKey: !!settings.apiKey,
-        model: settings.model,
+        path: settings.path,
+        providerId: settings.providerId,
+        hasApiKey: !!settings.apiKeys[settings.providerId],
+        model: settings.models[settings.providerId] || "(provider default)",
       },
     });
 

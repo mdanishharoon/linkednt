@@ -8,6 +8,9 @@ pkgs.mkShell {
     bun
     nodejs_24 # for packages that depend on node internals
 
+    # supabase cli for connecting to and managing supabase projects
+    supabase-cli
+
     # formatters
     treefmt
     nixfmt

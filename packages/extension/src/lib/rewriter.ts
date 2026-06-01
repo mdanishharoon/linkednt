@@ -4,43 +4,20 @@ import {
   promptForMode,
   temperatureForMode,
 } from "./prompts";
-import type { Mode, RewriteErrorCode, RewriteResponse } from "./types";
+import { getProvider } from "./providers/registry";
+import type { ProviderCallArgs, ProviderId } from "./providers/types";
+import type { Mode, RewriteResponse } from "./types";
 
-const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const MIN_TEXT_LENGTH = 24;
 const LOG = "[linkednt:rw]";
 
-interface GroqRequestBody {
-  model: string;
-  messages: Array<{ role: "system" | "user"; content: string }>;
-  temperature: number;
-  top_p: number;
-  stream: false;
-  stop: null;
-  max_completion_tokens: number;
-  // Groq-specific extension for reasoning models (qwen3, deepseek-r1, etc.).
-  // "hidden" keeps the chain-of-thought internal and returns only the final
-  // answer in `content` — without this, content is wrapped in <think> blocks
-  // that get stripped by cleanModelOutput, leaving empty results.
-  reasoning_format?: "raw" | "hidden" | "parsed";
-}
-
-interface GroqResponseShape {
-  choices?: Array<{ message?: { content?: string } }>;
-  error?: { message?: string };
-  message?: string;
-}
-
-interface RewriteArgs {
+export interface RewriteArgs {
   text: string;
   mode: Mode;
+  providerId: ProviderId;
   apiKey: string;
   model: string;
 }
-
-type CallResult =
-  | { ok: true; raw: string }
-  | { ok: false; code: RewriteErrorCode; error: string };
 
 export async function rewrite(args: RewriteArgs): Promise<RewriteResponse> {
   const text = args.text.trim();
@@ -52,25 +29,44 @@ export async function rewrite(args: RewriteArgs): Promise<RewriteResponse> {
       error: "Not enough slop to work with.",
     };
   }
+
+  const provider = getProvider(args.providerId);
+  if (!provider) {
+    return {
+      ok: false,
+      code: "PROVIDER_UNKNOWN",
+      error: `Unknown provider: ${args.providerId}`,
+    };
+  }
+
   if (!args.apiKey) {
     return {
       ok: false,
       code: "NO_API_KEY",
-      error: "Open linkednt from Chrome's toolbar and add your Groq key.",
+      error: `Open linkednt from Chrome's toolbar and add your ${provider.label} key.`,
     };
   }
 
-  const firstAttempt = await callGroq({ ...args, text, strict: false });
+  const model = args.model || provider.defaultModel;
+
+  // First attempt — without the strict-output suffix. Most well-behaved models
+  // satisfy the per-mode constraints on the first try.
+  const firstAttempt = await callProvider(provider.call, {
+    ...args,
+    text,
+    model,
+    strict: false,
+  });
   if (!firstAttempt.ok) return firstAttempt;
 
-  let output = cleanModelOutput(firstAttempt.raw);
+  let output = cleanModelOutput(firstAttempt.content);
 
-  if (!output && firstAttempt.raw) {
+  if (!output && firstAttempt.content) {
     console.warn(
       `${LOG} first attempt: clean produced empty output, raw was:`,
       {
-        rawChars: firstAttempt.raw.length,
-        rawPreview: firstAttempt.raw.slice(0, 300),
+        rawChars: firstAttempt.content.length,
+        rawPreview: firstAttempt.content.slice(0, 300),
       },
     );
   }
@@ -80,14 +76,20 @@ export async function rewrite(args: RewriteArgs): Promise<RewriteResponse> {
     console.info(`${LOG} retrying with strict suffix`, {
       reason: retryReason,
       mode: args.mode,
+      provider: args.providerId,
     });
-    const retry = await callGroq({ ...args, text, strict: true });
+    const retry = await callProvider(provider.call, {
+      ...args,
+      text,
+      model,
+      strict: true,
+    });
     if (retry.ok) {
-      const retryClean = cleanModelOutput(retry.raw);
-      if (!retryClean && retry.raw) {
+      const retryClean = cleanModelOutput(retry.content);
+      if (!retryClean && retry.content) {
         console.warn(`${LOG} retry: clean produced empty output, raw was:`, {
-          rawChars: retry.raw.length,
-          rawPreview: retry.raw.slice(0, 300),
+          rawChars: retry.content.length,
+          rawPreview: retry.content.slice(0, 300),
         });
       }
       if (retryClean) output = retryClean;
@@ -103,78 +105,67 @@ export async function rewrite(args: RewriteArgs): Promise<RewriteResponse> {
     return {
       ok: false,
       code: "EMPTY",
-      error: "Groq returned an empty translation.",
+      error: `${provider.label} returned an empty translation.`,
     };
   }
 
   return { ok: true, rewrite: output, mode: args.mode };
 }
 
-async function callGroq(
-  args: RewriteArgs & { strict: boolean },
-): Promise<CallResult> {
-  const body = buildBody(args);
+// Adapter: builds ProviderCallArgs from our per-mode rewrite args + logs timing.
+async function callProvider(
+  providerCall: (a: ProviderCallArgs) => Promise<
+    | {
+        ok: true;
+        content: string;
+        raw: unknown;
+      }
+    | {
+        ok: false;
+        code: import("./types").RewriteErrorCode;
+        error: string;
+        raw?: unknown;
+      }
+  >,
+  args: RewriteArgs & { text: string; strict: boolean; model: string },
+) {
   const startedAt = performance.now();
-
-  let response: Response;
-  try {
-    response = await fetch(GROQ_ENDPOINT, {
-      method: "POST",
-      credentials: "omit",
-      cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${args.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    const ms = Math.round(performance.now() - startedAt);
-    console.error(`${LOG} fetch threw`, { ms, err });
-    return {
-      ok: false,
-      code: "NETWORK",
-      error: err instanceof Error ? err.message : "Network request failed.",
-    };
-  }
-
-  const ms = Math.round(performance.now() - startedAt);
-  const data = (await response.json().catch(() => ({}))) as GroqResponseShape;
-
-  console.info(`${LOG} groq response`, {
-    status: response.status,
-    ok: response.ok,
-    ms,
-    model: args.model,
-    strict: args.strict,
-    contentChars: data.choices?.[0]?.message?.content?.length ?? 0,
-  });
-
-  if (!response.ok) {
-    return { ok: false, ...classifyError(response.status, data) };
-  }
-
-  return { ok: true, raw: data.choices?.[0]?.message?.content ?? "" };
-}
-
-function buildBody(args: RewriteArgs & { strict: boolean }): GroqRequestBody {
   const basePrompt = promptForMode(args.mode);
   const systemPrompt = args.strict
     ? basePrompt + STRICT_OUTPUT_SUFFIX
     : basePrompt;
-  return {
+
+  const result = await providerCall({
+    systemPrompt,
+    userPrompt: args.text,
     model: args.model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: args.text },
-    ],
     temperature: temperatureForMode(args.mode, args.strict),
-    top_p: 0.95,
-    stream: false,
-    stop: null,
-    max_completion_tokens: maxTokensForMode(args.mode),
-    reasoning_format: "hidden",
-  };
+    maxTokens: maxTokensForMode(args.mode),
+    apiKey: args.apiKey,
+    reasoningHidden: true,
+  });
+  const ms = Math.round(performance.now() - startedAt);
+
+  if (result.ok) {
+    console.info(`${LOG} provider response`, {
+      provider: args.providerId,
+      model: args.model,
+      ms,
+      strict: args.strict,
+      contentChars: result.content.length,
+    });
+    return { ok: true as const, content: result.content };
+  }
+
+  console.warn(`${LOG} provider error`, {
+    provider: args.providerId,
+    model: args.model,
+    ms,
+    strict: args.strict,
+    code: result.code,
+    error: result.error,
+  });
+  return { ok: false as const, code: result.code, error: result.error };
 }
 
 function cleanModelOutput(content: string): string {
@@ -213,34 +204,4 @@ function retryReasonFor(result: string, mode: Mode): string | null {
   }
 
   return null;
-}
-
-function classifyError(
-  status: number,
-  data: GroqResponseShape,
-): { code: RewriteErrorCode; error: string } {
-  const detail = data.error?.message || data.message;
-
-  if (detail?.toLowerCase().includes("insufficient credits")) {
-    return {
-      code: "INSUFFICIENT_CREDITS",
-      error:
-        "Groq returned an insufficient credits error. Switch to a smaller model.",
-    };
-  }
-  if (status === 401 || status === 403) {
-    return {
-      code: "UNAUTHORIZED",
-      error: "Groq rejected the API key. Save a valid key in linkednt.",
-    };
-  }
-  if (status === 429) {
-    return {
-      code: "RATE_LIMITED",
-      error: detail
-        ? `Groq rate limited this request: ${detail}`
-        : "Groq rate limited this request. Try again later.",
-    };
-  }
-  return { code: "HTTP", error: detail || `Groq returned ${status}.` };
 }

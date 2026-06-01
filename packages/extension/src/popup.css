@@ -545,6 +545,84 @@ h2 {
   font-weight: 800;
 }
 
+/* Segmented control for the BYOK / Proxy path picker. Two buttons sit
+   side-by-side at the same visual weight; one is "active" at a time. */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.segmented-btn {
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 780;
+  letter-spacing: 0.01em;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.segmented-btn:hover {
+  color: var(--ink);
+}
+
+.segmented-btn.is-active {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 3px oklch(25% 0.05 248 / 0.12);
+}
+
+/* "Honest note" callout under the Sign-in button in the credits panel —
+   subtle warm background, no heavy borders, clearly secondary information. */
+.honest-note {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: oklch(96% 0.022 73);
+  color: oklch(34% 0.06 73);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.honest-note strong {
+  color: oklch(28% 0.08 73);
+  font-weight: 800;
+}
+
+/* "On file: gsk_...abcd  Get one →" microcopy under the API key field. */
+.key-status {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.key-status a {
+  margin-left: auto;
+  color: var(--blue-deep);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.key-status a:hover {
+  color: var(--blue);
+}
+
 .text-button:hover {
   color: var(--blue);
 }

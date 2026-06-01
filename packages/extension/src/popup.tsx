@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 
-import { getSettings, setSettings } from "~lib/storage";
-import { DEFAULT_GROQ_MODEL, type Mode } from "~lib/types";
+import { listProviders } from "~lib/providers/registry";
+import type { BuiltinProviderId } from "~lib/providers/types";
+import {
+  getSettings,
+  setApiKey as saveApiKey,
+  setModel as saveModel,
+  setSettings,
+} from "~lib/storage";
+import { type Mode, type Path } from "~lib/types";
 
 import "./popup.css";
 
@@ -35,28 +42,38 @@ const MODE_OPTIONS: ModeOption[] = [
   },
 ];
 
+const PROVIDERS = listProviders();
+
 function Popup() {
   const [enabled, setEnabled] = useState(false);
-  const [mode, setMode] = useState<Mode>("strip");
-  const [savedKey, setSavedKey] = useState("");
+  const [path, setPath] = useState<Path>("proxy");
+  const [providerId, setProviderId] = useState<BuiltinProviderId>("groq");
   const [keyInput, setKeyInput] = useState("");
-  const [model, setModel] = useState(DEFAULT_GROQ_MODEL);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [savedKey, setSavedKey] = useState("");
+  const [modelInput, setModelInput] = useState("");
+  const [mode, setMode] = useState<Mode>("strip");
   const [flashText, setFlashText] = useState("");
   const flashTimer = useRef<number | undefined>(undefined);
+
+  const provider = PROVIDERS.find((p) => p.id === providerId) ?? PROVIDERS[0];
 
   useEffect(() => {
     void getSettings().then((s) => {
       console.info(`${LOG} loaded`, {
         enabled: s.enabled,
+        path: s.path,
+        providerId: s.providerId,
         mode: s.mode,
-        model: s.model,
-        hasApiKey: !!s.apiKey,
+        keysFor: Object.keys(s.apiKeys),
       });
       setEnabled(s.enabled);
+      setPath(s.path);
+      setProviderId(s.providerId as BuiltinProviderId);
       setMode(s.mode);
-      setSavedKey(s.apiKey);
-      setModel(s.model);
+      const pid = s.providerId as BuiltinProviderId;
+      setSavedKey(s.apiKeys[pid] ?? "");
+      const p = PROVIDERS.find((q) => q.id === pid);
+      setModelInput(s.models[pid] || p?.defaultModel || "");
     });
   }, []);
 
@@ -66,20 +83,54 @@ function Popup() {
     flashTimer.current = window.setTimeout(() => setFlashText(""), 1400);
   }
 
-  async function saveKey() {
+  async function pickPath(next: Path) {
+    setPath(next);
+    await setSettings({ path: next });
+    flash(next === "proxy" ? "Credits" : "BYOK");
+    console.info(`${LOG} path changed`, { path: next });
+  }
+
+  async function pickProvider(next: BuiltinProviderId) {
+    setProviderId(next);
+    await setSettings({ providerId: next });
+    const s = await getSettings();
+    setSavedKey(s.apiKeys[next] ?? "");
+    const p = PROVIDERS.find((q) => q.id === next);
+    setModelInput(s.models[next] || p?.defaultModel || "");
+    setKeyInput("");
+    flash("Saved");
+    console.info(`${LOG} provider changed`, { providerId: next });
+  }
+
+  async function commitKey() {
     const trimmed = keyInput.trim();
     if (!trimmed) {
       flash("Missing");
       return;
     }
-    await setSettings({ apiKey: trimmed });
+    await saveApiKey(providerId, trimmed);
     setSavedKey(trimmed);
     setKeyInput("");
     flash("Saved");
     console.info(`${LOG} api key saved`, {
+      providerId,
       length: trimmed.length,
       prefix: trimmed.slice(0, 4),
     });
+  }
+
+  async function commitModel() {
+    const trimmed = modelInput.trim() || provider.defaultModel;
+    setModelInput(trimmed);
+    await saveModel(providerId, trimmed);
+    flash("Saved");
+    console.info(`${LOG} model saved`, { providerId, model: trimmed });
+  }
+
+  async function resetModel() {
+    setModelInput(provider.defaultModel);
+    await saveModel(providerId, provider.defaultModel);
+    flash("Reset");
   }
 
   async function toggleEnabled(next: boolean) {
@@ -96,24 +147,9 @@ function Popup() {
     console.info(`${LOG} mode changed`, { mode: next });
   }
 
-  async function changeModel(next: string) {
-    const trimmed = next.trim() || DEFAULT_GROQ_MODEL;
-    setModel(trimmed);
-    await setSettings({ model: trimmed });
-    flash("Saved");
-    console.info(`${LOG} model changed`, { model: trimmed });
-  }
-
-  async function resetModel() {
-    setModel(DEFAULT_GROQ_MODEL);
-    await setSettings({ model: DEFAULT_GROQ_MODEL });
-    flash("Reset");
-    console.info(`${LOG} model reset`, { model: DEFAULT_GROQ_MODEL });
-  }
-
-  const summary = savedKey
-    ? `${savedKey.slice(0, 8)}...${savedKey.slice(-4)}`
-    : "No key on file";
+  const savedKeySummary = savedKey
+    ? `${savedKey.slice(0, 6)}...${savedKey.slice(-4)}`
+    : "No key saved";
 
   return (
     <main className="shell">
@@ -128,8 +164,8 @@ function Popup() {
       </section>
 
       <div className="signal-row" aria-label="Extension details">
-        <span>Local key</span>
-        <span>Groq</span>
+        <span>Local first</span>
+        <span>{path === "proxy" ? "Credits" : provider.label}</span>
         <span>LinkedIn only</span>
       </div>
 
@@ -153,43 +189,154 @@ function Popup() {
         </div>
       </section>
 
-      <section className="panel key-panel" aria-labelledby="key-title">
-        <div className="section-head">
+      {/* Path picker — segmented control, both options visible side-by-side. */}
+      <section
+        className="panel"
+        aria-labelledby="path-title"
+        style={{ paddingBottom: 9 }}
+      >
+        <div className="section-head tight">
           <div>
-            <h2 id="key-title">Groq key</h2>
-            <p className="summary">{summary}</p>
+            <h2 id="path-title">How rewrites happen</h2>
+            <p className="summary">
+              Both work. Credits keep keys off your machine.
+            </p>
           </div>
           <span className="save-state" aria-live="polite">
             {flashText}
           </span>
         </div>
 
-        <label className="field">
-          <span>API key</span>
-          <input
-            type="password"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="gsk_..."
-            value={keyInput}
-            onChange={(e) => setKeyInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void saveKey();
-            }}
-          />
-        </label>
-
-        <button
-          className="primary-button"
-          type="button"
-          onClick={() => void saveKey()}
-        >
-          <span className="button-icon" aria-hidden="true">
-            +
-          </span>
-          Save key
-        </button>
+        <div className="segmented" role="tablist" aria-label="Rewrite path">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={path === "proxy"}
+            className={`segmented-btn ${path === "proxy" ? "is-active" : ""}`}
+            onClick={() => void pickPath("proxy")}
+          >
+            Use credits
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={path === "byok"}
+            className={`segmented-btn ${path === "byok" ? "is-active" : ""}`}
+            onClick={() => void pickPath("byok")}
+          >
+            Bring own key
+          </button>
+        </div>
       </section>
+
+      {path === "proxy" ? (
+        <section className="panel" aria-labelledby="credits-title">
+          <div className="section-head tight">
+            <div>
+              <h2 id="credits-title">Credits</h2>
+              <p className="summary">
+                Sign in to start the free trial — 30 rewrites on us.
+              </p>
+            </div>
+          </div>
+          <button className="primary-button" type="button" disabled>
+            <span className="button-icon" aria-hidden="true">
+              +
+            </span>
+            Sign in (coming soon)
+          </button>
+          <p className="honest-note">
+            <strong>Honest note:</strong> Credits run on a tiny margin (a few
+            cents over cost). Feel free to support the project — or stay on
+            Bring own key, no hard feelings.
+          </p>
+        </section>
+      ) : (
+        <section className="panel" aria-labelledby="byok-title">
+          <div className="section-head tight">
+            <div>
+              <h2 id="byok-title">Your provider</h2>
+              <p className="summary">
+                The key never leaves this browser. Calls go straight to the
+                provider.
+              </p>
+            </div>
+          </div>
+
+          <label className="field">
+            <span>Provider</span>
+            <select
+              value={providerId}
+              onChange={(e) =>
+                void pickProvider(e.target.value as BuiltinProviderId)
+              }
+            >
+              {PROVIDERS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            <span>API key</span>
+            <input
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder={provider.keyPlaceholder}
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void commitKey();
+              }}
+            />
+            <small className="key-status">
+              On file: {savedKeySummary}{" "}
+              <a href={provider.consoleUrl} target="_blank" rel="noreferrer">
+                Get one →
+              </a>
+            </small>
+          </label>
+
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => void commitKey()}
+          >
+            <span className="button-icon" aria-hidden="true">
+              +
+            </span>
+            Save key
+          </button>
+
+          <label className="field" style={{ marginTop: 10 }}>
+            <span>Model</span>
+            <input
+              type="text"
+              list={`models-${providerId}`}
+              autoComplete="off"
+              spellCheck={false}
+              value={modelInput}
+              onChange={(e) => setModelInput(e.target.value)}
+              onBlur={() => void commitModel()}
+            />
+            <datalist id={`models-${providerId}`}>
+              {provider.modelSuggestions.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
+          </label>
+          <button
+            className="text-button"
+            type="button"
+            onClick={() => void resetModel()}
+          >
+            Reset to {provider.defaultModel}
+          </button>
+        </section>
+      )}
 
       <section className="panel" aria-labelledby="mode-title">
         <div className="section-head tight">
@@ -225,51 +372,9 @@ function Popup() {
         </div>
       </section>
 
-      <section className="advanced">
-        <button
-          className="ghost-button"
-          type="button"
-          aria-expanded={advancedOpen}
-          aria-controls="advanced-body"
-          onClick={() => setAdvancedOpen((v) => !v)}
-        >
-          <span aria-hidden="true">›</span>
-          <span>Advanced</span>
-        </button>
-
-        <div
-          id="advanced-body"
-          className="advanced-body"
-          hidden={!advancedOpen}
-        >
-          <label className="field">
-            <span>Model</span>
-            <input
-              type="text"
-              autoComplete="off"
-              spellCheck={false}
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              onBlur={(e) => void changeModel(e.target.value)}
-            />
-          </label>
-          <button
-            className="text-button"
-            type="button"
-            onClick={() => void resetModel()}
-          >
-            Reset to default
-          </button>
-        </div>
-      </section>
-
       <footer className="footer">
-        <a
-          href="https://console.groq.com/keys"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Groq keys
+        <a href="https://linkednt.pages.dev" target="_blank" rel="noreferrer">
+          linkednt.pages.dev
         </a>
         <span aria-hidden="true">·</span>
         <span>Runs only on LinkedIn</span>

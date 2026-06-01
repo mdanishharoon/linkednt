@@ -1,21 +1,80 @@
-import { DEFAULT_SETTINGS, type Mode, type Settings } from "./types";
+import type { ProviderId } from "./providers/types";
+import { DEFAULT_SETTINGS, type Mode, type Path, type Settings } from "./types";
 
-const SETTINGS_KEYS = ["enabled", "mode", "apiKey", "model"] as const;
+const SETTINGS_KEYS = [
+  "enabled",
+  "mode",
+  "path",
+  "providerId",
+  "apiKeys",
+  "models",
+  // Legacy single-key fields — migrated on first load below.
+  "apiKey",
+  "model",
+] as const;
+
+interface RawStored {
+  enabled?: unknown;
+  mode?: unknown;
+  path?: unknown;
+  providerId?: unknown;
+  apiKeys?: unknown;
+  models?: unknown;
+  apiKey?: unknown;
+  model?: unknown;
+}
 
 export async function getSettings(): Promise<Settings> {
-  const raw = await chrome.storage.local.get(
+  const raw = (await chrome.storage.local.get(
     SETTINGS_KEYS as unknown as string[],
-  );
+  )) as RawStored;
+
+  // Migrate legacy single-key fields into the per-provider maps. Runs once;
+  // after the first setSettings() the legacy fields stop being read.
+  const apiKeys: Record<string, string> = isRecord(raw.apiKeys)
+    ? { ...(raw.apiKeys as Record<string, string>) }
+    : {};
+  const models: Record<string, string> = isRecord(raw.models)
+    ? { ...(raw.models as Record<string, string>) }
+    : {};
+
+  if (typeof raw.apiKey === "string" && raw.apiKey && !apiKeys.groq) {
+    apiKeys.groq = raw.apiKey;
+  }
+  if (typeof raw.model === "string" && raw.model && !models.groq) {
+    models.groq = raw.model;
+  }
+
   return {
     enabled: coerceBool(raw.enabled, DEFAULT_SETTINGS.enabled),
     mode: (raw.mode as Mode) || DEFAULT_SETTINGS.mode,
-    apiKey: (raw.apiKey as string) || DEFAULT_SETTINGS.apiKey,
-    model: (raw.model as string) || DEFAULT_SETTINGS.model,
+    path: (raw.path as Path) || DEFAULT_SETTINGS.path,
+    providerId: (raw.providerId as ProviderId) || DEFAULT_SETTINGS.providerId,
+    apiKeys,
+    models,
   };
 }
 
 export async function setSettings(patch: Partial<Settings>): Promise<void> {
   await chrome.storage.local.set(patch);
+}
+
+/** Set a single API key for a specific provider — merges, doesn't overwrite. */
+export async function setApiKey(
+  providerId: ProviderId,
+  key: string,
+): Promise<void> {
+  const settings = await getSettings();
+  await setSettings({ apiKeys: { ...settings.apiKeys, [providerId]: key } });
+}
+
+/** Set a single model for a specific provider — merges, doesn't overwrite. */
+export async function setModel(
+  providerId: ProviderId,
+  model: string,
+): Promise<void> {
+  const settings = await getSettings();
+  await setSettings({ models: { ...settings.models, [providerId]: model } });
 }
 
 export async function getMode(): Promise<Mode> {
@@ -38,11 +97,14 @@ export function onSettingsChange(
     if (changes.enabled)
       patch.enabled = coerceBool(changes.enabled.newValue, false);
     if (changes.mode) patch.mode = changes.mode.newValue as Mode;
-    if (changes.apiKey)
-      patch.apiKey = (changes.apiKey.newValue as string) ?? "";
-    if (changes.model)
-      patch.model =
-        (changes.model.newValue as string) ?? DEFAULT_SETTINGS.model;
+    if (changes.path) patch.path = changes.path.newValue as Path;
+    if (changes.providerId)
+      patch.providerId = changes.providerId.newValue as ProviderId;
+    if (changes.apiKeys)
+      patch.apiKeys =
+        (changes.apiKeys.newValue as Record<string, string>) ?? {};
+    if (changes.models)
+      patch.models = (changes.models.newValue as Record<string, string>) ?? {};
     if (Object.keys(patch).length > 0) cb(patch);
   };
   chrome.storage.onChanged.addListener(listener);
@@ -53,4 +115,8 @@ function coerceBool(value: unknown, fallback: boolean): boolean {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") return value === "true";
   return fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -42,7 +42,11 @@
   "manifest": {
     "host_permissions": [
       "https://www.linkedin.com/*",
-      "https://api.groq.com/*"
+      "https://api.groq.com/*",
+      "https://api.openai.com/*",
+      "https://api.anthropic.com/*",
+      "https://generativelanguage.googleapis.com/*",
+      "https://openrouter.ai/*"
     ],
     "permissions": [
       "storage",
