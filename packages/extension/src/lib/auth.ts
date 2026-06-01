@@ -20,8 +20,7 @@ const LOG = "[linkednt:auth]";
 
 const SUPABASE_URL = process.env.PLASMO_PUBLIC_SUPABASE_URL ?? "";
 const SUPABASE_ANON_KEY = process.env.PLASMO_PUBLIC_SUPABASE_ANON_KEY ?? "";
-const SITE_URL =
-  process.env.PLASMO_PUBLIC_SITE_URL ?? "https://linkednt.pages.dev";
+const SITE_URL = process.env.PLASMO_PUBLIC_SITE_URL ?? "https://linkednt.com";
 
 const SESSION_KEY = "auth.session";
 const REFRESH_LEEWAY_MS = 60_000;

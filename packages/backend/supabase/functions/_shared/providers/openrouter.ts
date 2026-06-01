@@ -11,7 +11,7 @@ export const openrouterProvider: Provider = {
         endpoint: "https://openrouter.ai/api/v1/chat/completions",
         maxTokensField: "max_tokens",
         extraHeaders: {
-          "HTTP-Referer": "https://linkednt.pages.dev",
+          "HTTP-Referer": "https://linkednt.com",
           "X-Title": "linkednt",
         },
       },

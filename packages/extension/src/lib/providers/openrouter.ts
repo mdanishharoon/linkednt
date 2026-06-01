@@ -27,7 +27,7 @@ export const openrouterProvider: Provider = {
         // OpenRouter wants attribution headers so app traffic shows up in
         // their analytics + helps us if we ever apply for higher rate limits.
         extraHeaders: {
-          "HTTP-Referer": "https://linkednt.pages.dev",
+          "HTTP-Referer": "https://linkednt.com",
           "X-Title": "linkednt",
         },
       },

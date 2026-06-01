@@ -52,6 +52,11 @@ const MODE_OPTIONS: ModeOption[] = [
 
 const PROVIDERS = listProviders();
 
+// Sentinel value for the "Custom model…" option in the model <select>. Has
+// to be a string the user is extremely unlikely to ever paste as a real
+// model id.
+const CUSTOM_MODEL_VALUE = "__linkednt_custom_model__";
+
 function Popup() {
   const [path, setPath] = useState<Path>("proxy");
   const [providerId, setProviderId] = useState<BuiltinProviderId>("groq");
@@ -173,6 +178,19 @@ function Popup() {
     console.info(`${LOG} model saved`, { providerId, model: trimmed });
   }
 
+  async function pickModelSelect(value: string) {
+    if (value === CUSTOM_MODEL_VALUE) {
+      // Switching INTO custom mode: clear the input so the user starts fresh.
+      // Don't commit yet — they need to type something first.
+      setModelInput("");
+      return;
+    }
+    setModelInput(value);
+    await saveModel(providerId, value);
+    flash("Saved");
+    console.info(`${LOG} model saved`, { providerId, model: value });
+  }
+
   async function resetModel() {
     setModelInput(provider.defaultModel);
     await saveModel(providerId, provider.defaultModel);
@@ -194,19 +212,13 @@ function Popup() {
     <main className="shell">
       <section className="hero" aria-labelledby="title">
         <div className="mark" aria-hidden="true">
-          <span>lo</span>
+          n<span className="apos">&rsquo;</span>t
         </div>
         <div className="hero-copy">
-          <h1 id="title">linkednt</h1>
+          <h1 id="title">linkedn&rsquo;t</h1>
           <p className="tagline">Unslop your LinkedIn feed.</p>
         </div>
       </section>
-
-      <div className="signal-row" aria-label="Extension details">
-        <span>Local first</span>
-        <span>{path === "proxy" ? "Credits" : provider.label}</span>
-        <span>LinkedIn only</span>
-      </div>
 
       {/* Path picker — segmented control, both options visible side-by-side. */}
       <section
@@ -358,21 +370,41 @@ function Popup() {
 
           <label className="field" style={{ marginTop: 10 }}>
             <span>Model</span>
-            <input
-              type="text"
-              list={`models-${providerId}`}
-              autoComplete="off"
-              spellCheck={false}
-              value={modelInput}
-              onChange={(e) => setModelInput(e.target.value)}
-              onBlur={() => void commitModel()}
-            />
-            <datalist id={`models-${providerId}`}>
+            <select
+              value={
+                provider.modelSuggestions.includes(modelInput)
+                  ? modelInput
+                  : CUSTOM_MODEL_VALUE
+              }
+              onChange={(e) => void pickModelSelect(e.target.value)}
+            >
               {provider.modelSuggestions.map((m) => (
-                <option key={m} value={m} />
+                <option key={m} value={m}>
+                  {m}
+                </option>
               ))}
-            </datalist>
+              <option value={CUSTOM_MODEL_VALUE}>Custom model…</option>
+            </select>
           </label>
+
+          {!provider.modelSuggestions.includes(modelInput) && (
+            <label className="field" style={{ marginTop: 6 }}>
+              <span>Custom model ID</span>
+              <input
+                type="text"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="provider/model-name"
+                value={modelInput}
+                onChange={(e) => setModelInput(e.target.value)}
+                onBlur={() => void commitModel()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void commitModel();
+                }}
+              />
+            </label>
+          )}
+
           <button
             className="text-button"
             type="button"
@@ -418,8 +450,8 @@ function Popup() {
       </section>
 
       <footer className="footer">
-        <a href="https://linkednt.pages.dev" target="_blank" rel="noreferrer">
-          linkednt.pages.dev
+        <a href="https://linkednt.com" target="_blank" rel="noreferrer">
+          linkednt.com
         </a>
         <span aria-hidden="true">·</span>
         <span>Runs only on LinkedIn</span>

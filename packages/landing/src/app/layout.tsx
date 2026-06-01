@@ -19,7 +19,7 @@ const jakarta = Plus_Jakarta_Sans({
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
-  "https://linkednt.pages.dev";
+  "https://linkednt.com";
 
 const TITLE = "linkedn't — see what they actually meant";
 const DESCRIPTION =

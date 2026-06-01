@@ -24,8 +24,9 @@ port = 54323
 enabled = true
 # These are placeholders for local dev — production values live in the
 # Supabase dashboard or via `supabase secrets set` / config push.
-site_url = "https://linkednt.pages.dev"
+site_url = "https://linkednt.com"
 additional_redirect_urls = [
+  "https://linkednt.com/auth/callback",
   "https://linkednt.pages.dev/auth/callback",
   "http://localhost:3000/auth/callback",
 ]

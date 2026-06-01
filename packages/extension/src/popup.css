@@ -101,32 +101,26 @@ select {
 
 .mark {
   position: relative;
-  display: grid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 42px;
   height: 42px;
-  place-items: center;
-  border: 1px solid var(--ink);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: 3px 3px 0 var(--ink);
-  color: var(--blue);
-  font-size: 15px;
+  border-radius: 10px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 22px;
   font-weight: 900;
-  letter-spacing: 0;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  box-shadow: 0 1px 2px oklch(25% 0.05 248 / 0.2);
 }
 
-.mark::after {
-  content: "";
-  position: absolute;
-  width: 33px;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--red);
-  transform: rotate(-18deg);
-}
-
-.mark span {
-  transform: translateY(-1px);
+/* The apostrophe sits smaller than the 'n' and 't' so the badge reads as
+   a real "n't" rather than "n + quote + t". Matches the landing favicon. */
+.mark .apos {
+  font-size: 16px;
+  margin: 0 0.5px;
 }
 
 .hero-copy {
