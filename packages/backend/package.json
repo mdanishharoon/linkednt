@@ -1,0 +1,15 @@
+{
+  "name": "@linkednt/backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "link": "supabase link",
+    "db:push": "supabase db push",
+    "db:diff": "supabase db diff",
+    "db:reset": "supabase db reset",
+    "fn:serve": "supabase functions serve rewrite --env-file ./.env.local",
+    "fn:deploy": "supabase functions deploy rewrite",
+    "secrets:list": "supabase secrets list",
+    "typecheck": "deno check supabase/functions/rewrite/index.ts || true"
+  }
+}

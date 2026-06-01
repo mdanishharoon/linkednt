@@ -1,6 +1,7 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging";
 
 import { getProvider } from "~lib/providers/registry";
+import { callProxyRewrite } from "~lib/proxy";
 import { rewrite } from "~lib/rewriter";
 import { getSettings } from "~lib/storage";
 import type { RewriteRequest, RewriteResponse } from "~lib/types";
@@ -20,28 +21,34 @@ const handler: PlasmoMessaging.MessageHandler<
 
   const settings = await getSettings();
 
+  // -------- PROXY path: route through the linkednt edge function --------
   if (settings.path === "proxy") {
-    // Proxy edge function isn't wired yet — that's phase 3b. Give the user a
-    // typed error so the popup can show "switch to BYOK or check back later".
-    console.warn(
-      `${LOG} rewrite: proxy path selected but backend not deployed`,
-    );
-    res.send({
-      ok: false,
-      code: "PROXY_UNAVAILABLE",
-      error:
-        "Credits backend is still being built. Switch to 'Bring your own key' in the popup for now.",
+    // TODO(phase-4): pull session JWT from chrome.storage once Google OAuth
+    // is wired. For now, empty JWT triggers a 401 from the edge function →
+    // UNAUTHORIZED surfaced in the popup as "Sign in to use credits".
+    const sessionJwt = "";
+    console.info(`${LOG} rewrite: proxy call`, {
+      mode: body.mode,
+      chars: body.text.length,
+      hasSession: !!sessionJwt,
+      senderTab: req.sender?.tab?.url,
     });
+    const result = await callProxyRewrite({
+      text: body.text,
+      mode: body.mode,
+      sessionJwt,
+    });
+    res.send(result);
     return;
   }
 
-  // BYOK path — pull the per-provider key + model from settings.
+  // -------- BYOK path: call provider directly with user's key --------
   const provider = getProvider(settings.providerId);
   const apiKey = settings.apiKeys[settings.providerId] ?? "";
   const model =
     settings.models[settings.providerId] || provider?.defaultModel || "";
 
-  console.info(`${LOG} rewrite: received`, {
+  console.info(`${LOG} rewrite: byok call`, {
     mode: body.mode,
     chars: body.text.length,
     providerId: settings.providerId,

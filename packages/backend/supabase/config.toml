@@ -1,0 +1,48 @@
+# Run `supabase link --project-ref <ref>` to bind this local config to your
+# remote Supabase project. The project_id below is just the slug for local
+# `supabase start` development.
+
+project_id = "linkednt"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+# These are placeholders for local dev — production values live in the
+# Supabase dashboard or via `supabase secrets set` / config push.
+site_url = "https://linkednt.pages.dev"
+additional_redirect_urls = [
+  "https://linkednt.pages.dev/auth/callback",
+  "http://localhost:3000/auth/callback",
+]
+jwt_expiry = 3600
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.external.google]
+enabled = true
+# Set GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET via `supabase secrets set` in
+# production; for local dev export them in .env.local.
+client_id = "env(GOOGLE_CLIENT_ID)"
+secret = "env(GOOGLE_CLIENT_SECRET)"
+redirect_uri = ""
+skip_nonce_check = false
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+inspector_port = 8083
