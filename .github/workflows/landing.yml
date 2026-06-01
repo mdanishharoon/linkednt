@@ -1,0 +1,183 @@
+name: Landing CI & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/landing/**"
+      - ".github/workflows/landing.yml"
+      - "package.json"
+      - "bun.lock"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/landing/**"
+      - ".github/workflows/landing.yml"
+      - "package.json"
+      - "bun.lock"
+
+# Required secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN  — Cloudflare API token with Pages:Edit permission
+#   CLOUDFLARE_ACCOUNT_ID — Cloudflare account ID
+# Required variables (Settings → Secrets and variables → Actions → Variables):
+#   NEXT_PUBLIC_SUPABASE_URL          — Supabase project URL
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY     — Supabase publishable anon key
+# Optional secret:
+#   GH_ADMIN_TOKEN — PAT with `repo` admin scope for homepage update
+
+env:
+  CLOUDFLARE_PROJECT_NAME: linkednt
+
+jobs:
+  ci:
+    name: Lint & Build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - run: bun install --frozen-lockfile
+
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: packages/landing/.next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('bun.lock') }}-${{ hashFiles('packages/landing/src/**', 'packages/landing/public/**') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('bun.lock') }}-
+            nextjs-${{ runner.os }}-
+
+      - name: Lint landing
+        run: bun --filter '@linkednt/landing' lint
+
+      - name: Typecheck landing
+        run: bun --filter '@linkednt/landing' typecheck
+
+      - name: Build landing
+        run: bun run landing:build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SITE_URL: https://linkednt.pages.dev
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: landing-out
+          path: packages/landing/out
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Cloudflare Pages
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: landing-out
+          path: packages/landing/out
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        id: deploy
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy packages/landing/out --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=main --commit-dirty=true
+          packageManager: bun
+
+      - name: Set repository homepage
+        env:
+          GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::GH_ADMIN_TOKEN not set — skipping homepage update."
+            exit 0
+          fi
+          DEPLOY_URL="${{ steps.deploy.outputs.deployment-url }}"
+          PAGES_URL="https://${{ env.CLOUDFLARE_PROJECT_NAME }}.pages.dev"
+          HOMEPAGE="${DEPLOY_URL:-$PAGES_URL}"
+          gh repo edit --homepage "$HOMEPAGE"
+
+  deploy-preview:
+    name: Deploy Preview
+    needs: ci
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: landing-out
+          path: packages/landing/out
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Deploy preview
+        uses: cloudflare/wrangler-action@v3
+        id: deploy
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy packages/landing/out --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.head_ref }} --commit-dirty=true
+          packageManager: bun
+
+      - name: Comment preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = `${{ steps.deploy.outputs.deployment-url }}`;
+            const marker = '<!-- cf-pages-preview -->';
+            const body = `${marker}\nPreview deployed to: ${url}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }
