@@ -5,6 +5,10 @@
     "": {
       "name": "linkednt",
     },
+    "packages/backend": {
+      "name": "@linkednt/backend",
+      "version": "0.1.0",
+    },
     "packages/extension": {
       "name": "@linkednt/extension",
       "version": "0.0.1",
@@ -296,6 +300,8 @@
     "@lezer/common": ["@lezer/common@1.5.2", "", {}, "sha512-sxQE460fPZyU3sdc8lafxiPwJHBzZRy/udNFynGQky1SePYBdhkBl1kOagA9uT3pxR8K09bOrmTUqA9wb/PjSQ=="],
 
     "@lezer/lr": ["@lezer/lr@1.4.10", "", { "dependencies": { "@lezer/common": "^1.0.0" } }, "sha512-rnCpTIBafOx4mRp43xOxDJbFipJm/c0cia/V5TiGlhmMa+wsSdoGmUN3w5Bqrks/09Q/D4tNAmWaT8p6NRi77A=="],
+
+    "@linkednt/backend": ["@linkednt/backend@workspace:packages/backend"],
 
     "@linkednt/extension": ["@linkednt/extension@workspace:packages/extension"],
 
