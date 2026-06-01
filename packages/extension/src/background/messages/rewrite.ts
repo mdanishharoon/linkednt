@@ -1,5 +1,6 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging";
 
+import { getAccessToken } from "~lib/auth";
 import { getProvider } from "~lib/providers/registry";
 import { callProxyRewrite } from "~lib/proxy";
 import { rewrite } from "~lib/rewriter";
@@ -23,10 +24,7 @@ const handler: PlasmoMessaging.MessageHandler<
 
   // -------- PROXY path: route through the linkednt edge function --------
   if (settings.path === "proxy") {
-    // TODO(phase-4): pull session JWT from chrome.storage once Google OAuth
-    // is wired. For now, empty JWT triggers a 401 from the edge function →
-    // UNAUTHORIZED surfaced in the popup as "Sign in to use credits".
-    const sessionJwt = "";
+    const sessionJwt = (await getAccessToken()) ?? "";
     console.info(`${LOG} rewrite: proxy call`, {
       mode: body.mode,
       chars: body.text.length,

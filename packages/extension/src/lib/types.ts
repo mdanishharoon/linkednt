@@ -61,3 +61,23 @@ export const DEFAULT_SETTINGS: Settings = {
   apiKeys: {},
   models: {},
 };
+
+// Auth message shapes — kept here so the messages.d.ts ambient module sees
+// them. The full Session lives in lib/auth.ts; the popup only ever needs
+// the user identity slice.
+export interface SessionUserShape {
+  id: string;
+  email: string | null;
+}
+
+export type SignInResponse =
+  | { ok: true; user: SessionUserShape }
+  | { ok: false; code: string; error: string };
+
+export interface SignOutResponse {
+  ok: true;
+}
+
+export interface SessionResponse {
+  user: SessionUserShape | null;
+}
