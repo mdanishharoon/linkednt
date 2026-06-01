@@ -2,7 +2,7 @@ import type { ProviderId } from "./providers/types";
 
 export type Mode = "strip" | "summarise" | "roast";
 
-export const DEFAULT_MODE: Mode = "strip";
+export const DEFAULT_MODE: Mode = "roast";
 
 export const MODE_CREDITS: Record<Mode, number> = {
   strip: 1,
@@ -54,7 +54,10 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  enabled: false,
+  // The popup no longer exposes a kill switch — `enabled` is a programmatic
+  // setting only. New installs default to on. The content script + background
+  // migration also force-enable on extension install/update.
+  enabled: true,
   mode: DEFAULT_MODE,
   path: "proxy",
   providerId: "groq",

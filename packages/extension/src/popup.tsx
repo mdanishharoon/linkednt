@@ -31,10 +31,10 @@ interface ModeOption {
 
 const MODE_OPTIONS: ModeOption[] = [
   {
-    value: "strip",
+    value: "roast",
     index: "01",
-    label: "Strip",
-    blurb: "Bare facts in one sentence. No hype, no emojis, no hashtags.",
+    label: "Internal Monologue",
+    blurb: "What the post sounds like with the performance removed.",
   },
   {
     value: "summarise",
@@ -43,17 +43,16 @@ const MODE_OPTIONS: ModeOption[] = [
     blurb: "Plain English, with none of the inspirational packaging.",
   },
   {
-    value: "roast",
+    value: "strip",
     index: "03",
-    label: "Internal Monologue",
-    blurb: "What the post sounds like with the performance removed.",
+    label: "Strip",
+    blurb: "Bare facts in one sentence. No hype, no emojis, no hashtags.",
   },
 ];
 
 const PROVIDERS = listProviders();
 
 function Popup() {
-  const [enabled, setEnabled] = useState(false);
   const [path, setPath] = useState<Path>("proxy");
   const [providerId, setProviderId] = useState<BuiltinProviderId>("groq");
   const [keyInput, setKeyInput] = useState("");
@@ -77,7 +76,6 @@ function Popup() {
         mode: s.mode,
         keysFor: Object.keys(s.apiKeys),
       });
-      setEnabled(s.enabled);
       setPath(s.path);
       setProviderId(s.providerId as BuiltinProviderId);
       setMode(s.mode);
@@ -181,13 +179,6 @@ function Popup() {
     flash("Reset");
   }
 
-  async function toggleEnabled(next: boolean) {
-    setEnabled(next);
-    await setSettings({ enabled: next });
-    flash(next ? "On" : "Off");
-    console.info(`${LOG} enabled changed`, { enabled: next });
-  }
-
   async function pickMode(next: Mode) {
     setMode(next);
     await setSettings({ mode: next });
@@ -216,26 +207,6 @@ function Popup() {
         <span>{path === "proxy" ? "Credits" : provider.label}</span>
         <span>LinkedIn only</span>
       </div>
-
-      <section className="panel compact-panel" aria-labelledby="status-title">
-        <div className="toggle-row">
-          <div>
-            <h2 id="status-title">Run on LinkedIn</h2>
-            <p className="summary">
-              Turn this off if LinkedIn starts acting weird.
-            </p>
-          </div>
-          <label className="switch">
-            <input
-              id="enabled"
-              type="checkbox"
-              checked={enabled}
-              onChange={(e) => void toggleEnabled(e.target.checked)}
-            />
-            <span aria-hidden="true"></span>
-          </label>
-        </div>
-      </section>
 
       {/* Path picker — segmented control, both options visible side-by-side. */}
       <section
