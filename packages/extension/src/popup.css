@@ -683,3 +683,247 @@ h2 {
     transition: none;
   }
 }
+
+/* ── topbar (Home + Settings views) ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 4px 12px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+
+.topbar-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.topbar .mark {
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+  border-radius: 7px;
+}
+
+.topbar .mark .apos {
+  font-size: 11px;
+}
+
+.iconbtn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: 15px;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.iconbtn:hover {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+
+/* When the iconbtn is the FIRST element in the topbar (Settings back arrow),
+   don't shove it to the right. */
+.topbar > .iconbtn:first-child {
+  margin-left: 0;
+}
+
+/* ── credits hero (Home view) ── */
+.credits-hero {
+  background: linear-gradient(
+    155deg,
+    var(--blue-wash),
+    oklch(96% 0.018 248) 70%
+  );
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 16px 16px;
+  margin-bottom: 10px;
+  animation: rise-in 480ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.credits-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.credits-number {
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--blue-deep);
+  font-variant-numeric: tabular-nums;
+}
+
+.credits-sub {
+  margin-top: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.credits-loading {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  margin: 8px 0;
+}
+
+.credits-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.credits-cta h2 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.byok-hero-meta {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 4px 0 0;
+}
+
+.byok-hero-status {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* ── onboarding view ── */
+.shell-centered {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 4px 0;
+  gap: 14px;
+}
+
+.mark-lg {
+  width: 72px;
+  height: 72px;
+  font-size: 38px;
+  border-radius: 16px;
+}
+
+.mark-lg .apos {
+  font-size: 28px;
+}
+
+.onb-title {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 0;
+}
+
+.onb-tagline {
+  font-size: 14px;
+  color: var(--muted);
+  margin: -8px 0 4px;
+}
+
+.onb-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 2px 0;
+}
+
+.onb-divider::before,
+.onb-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.onb-byok {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  font-weight: 700;
+  text-align: center;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.onb-byok:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-2);
+}
+
+/* ── custom-provider draft form ── */
+.custom-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  margin-top: 4px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  background: oklch(98.5% 0.006 245);
+  animation: rise-in 320ms ease both;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.row-actions .primary-button {
+  flex: 1;
+  min-width: 140px;
+  margin-top: 0;
+}
+
+.row-actions .text-button.danger {
+  color: var(--red);
+}
+
+.row-actions .text-button.danger:hover {
+  color: oklch(46% 0.16 25);
+}
