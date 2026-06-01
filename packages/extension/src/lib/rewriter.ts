@@ -5,7 +5,11 @@ import {
   temperatureForMode,
 } from "./prompts";
 import { getProvider } from "./providers/registry";
-import type { ProviderCallArgs, ProviderId } from "./providers/types";
+import type {
+  CustomProvider,
+  ProviderCallArgs,
+  ProviderId,
+} from "./providers/types";
 import type { Mode, RewriteResponse } from "./types";
 
 const MIN_TEXT_LENGTH = 24;
@@ -17,6 +21,9 @@ export interface RewriteArgs {
   providerId: ProviderId;
   apiKey: string;
   model: string;
+  /** Pass-through for custom provider resolution. Empty array when caller
+   *  knows the providerId is a builtin. */
+  customProviders?: CustomProvider[];
 }
 
 export async function rewrite(args: RewriteArgs): Promise<RewriteResponse> {
@@ -30,7 +37,7 @@ export async function rewrite(args: RewriteArgs): Promise<RewriteResponse> {
     };
   }
 
-  const provider = getProvider(args.providerId);
+  const provider = getProvider(args.providerId, args.customProviders ?? []);
   if (!provider) {
     return {
       ok: false,

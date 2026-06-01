@@ -1,4 +1,4 @@
-import type { ProviderId } from "./providers/types";
+import type { CustomProvider, ProviderId } from "./providers/types";
 
 export type Mode = "strip" | "summarise" | "roast";
 
@@ -49,14 +49,21 @@ export interface Settings {
   mode: Mode;
   /** "byok" uses apiKeys[providerId] + the user's chosen provider/model.
    *  "proxy" routes through the linkednt edge function (requires sign-in /
-   *  credits — not wired yet, popup shows a placeholder). */
+   *  credits). */
   path: Path;
-  /** Active provider when path === "byok". */
+  /** Active provider when path === "byok". May be a builtin id (groq,
+   *  openrouter, …) or a custom provider id from customProviders. */
   providerId: ProviderId;
-  /** Per-provider API keys. apiKeys["groq"] = "gsk_...", etc. */
+  /** Per-builtin-provider API keys. apiKeys["groq"] = "gsk_...", etc.
+   *  Custom providers store their key inside the CustomProvider object. */
   apiKeys: Record<string, string>;
-  /** Per-provider model selection. Falls back to provider.defaultModel. */
+  /** Per-builtin-provider model selection. Falls back to provider.defaultModel.
+   *  Custom providers store their model inside the CustomProvider object. */
   models: Record<string, string>;
+  /** User-saved OpenAI-compatible endpoints. The popup's BYOK dropdown
+   *  merges these with builtin providers. Day-1 UI exposes a single slot
+   *  but the data model already supports many. */
+  customProviders: CustomProvider[];
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -69,6 +76,7 @@ export const DEFAULT_SETTINGS: Settings = {
   providerId: "groq",
   apiKeys: {},
   models: {},
+  customProviders: [],
 };
 
 // Auth message shapes — kept here so the messages.d.ts ambient module sees

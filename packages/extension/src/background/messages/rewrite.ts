@@ -52,10 +52,18 @@ const handler: PlasmoMessaging.MessageHandler<
   }
 
   // -------- BYOK path: call provider directly with user's key --------
-  const provider = getProvider(settings.providerId);
-  const apiKey = settings.apiKeys[settings.providerId] ?? "";
-  const model =
-    settings.models[settings.providerId] || provider?.defaultModel || "";
+  // Custom providers carry their key + model in the CustomProvider object;
+  // builtins use the legacy per-provider apiKeys + models maps.
+  const custom = settings.customProviders.find(
+    (p) => p.id === settings.providerId,
+  );
+  const provider = getProvider(settings.providerId, settings.customProviders);
+  const apiKey = custom
+    ? custom.apiKey
+    : (settings.apiKeys[settings.providerId] ?? "");
+  const model = custom
+    ? custom.model || provider?.defaultModel || ""
+    : settings.models[settings.providerId] || provider?.defaultModel || "";
 
   console.info(`${LOG} rewrite: byok call`, {
     mode: body.mode,
@@ -74,6 +82,7 @@ const handler: PlasmoMessaging.MessageHandler<
     providerId: settings.providerId,
     apiKey,
     model,
+    customProviders: settings.customProviders,
   });
   const ms = Math.round(performance.now() - startedAt);
 

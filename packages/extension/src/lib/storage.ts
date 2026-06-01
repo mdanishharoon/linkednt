@@ -1,4 +1,4 @@
-import type { ProviderId } from "./providers/types";
+import type { CustomProvider, ProviderId } from "./providers/types";
 import { DEFAULT_SETTINGS, type Mode, type Path, type Settings } from "./types";
 
 const SETTINGS_KEYS = [
@@ -8,6 +8,7 @@ const SETTINGS_KEYS = [
   "providerId",
   "apiKeys",
   "models",
+  "customProviders",
   // Legacy single-key fields — migrated on first load below.
   "apiKey",
   "model",
@@ -20,6 +21,7 @@ interface RawStored {
   providerId?: unknown;
   apiKeys?: unknown;
   models?: unknown;
+  customProviders?: unknown;
   apiKey?: unknown;
   model?: unknown;
 }
@@ -45,6 +47,12 @@ export async function getSettings(): Promise<Settings> {
     models.groq = raw.model;
   }
 
+  const customProviders: CustomProvider[] = Array.isArray(raw.customProviders)
+    ? (raw.customProviders as CustomProvider[]).filter(
+        (p) => p && typeof p.id === "string" && typeof p.baseUrl === "string",
+      )
+    : [];
+
   return {
     enabled: coerceBool(raw.enabled, DEFAULT_SETTINGS.enabled),
     mode: (raw.mode as Mode) || DEFAULT_SETTINGS.mode,
@@ -52,6 +60,7 @@ export async function getSettings(): Promise<Settings> {
     providerId: (raw.providerId as ProviderId) || DEFAULT_SETTINGS.providerId,
     apiKeys,
     models,
+    customProviders,
   };
 }
 
@@ -75,6 +84,36 @@ export async function setModel(
 ): Promise<void> {
   const settings = await getSettings();
   await setSettings({ models: { ...settings.models, [providerId]: model } });
+}
+
+/** Replace the saved customProviders array. */
+export async function setCustomProviders(
+  customProviders: CustomProvider[],
+): Promise<void> {
+  await setSettings({ customProviders });
+}
+
+/** Add a new custom provider; returns the saved entry (with its id). */
+export async function addCustomProvider(
+  provider: CustomProvider,
+): Promise<CustomProvider> {
+  const s = await getSettings();
+  const next = [
+    ...s.customProviders.filter((p) => p.id !== provider.id),
+    provider,
+  ];
+  await setSettings({ customProviders: next });
+  return provider;
+}
+
+/** Remove a custom provider by id. Falls back to the default builtin
+ *  provider if the removed one was active. */
+export async function removeCustomProvider(id: string): Promise<void> {
+  const s = await getSettings();
+  const next = s.customProviders.filter((p) => p.id !== id);
+  const patch: Partial<Settings> = { customProviders: next };
+  if (s.providerId === id) patch.providerId = DEFAULT_SETTINGS.providerId;
+  await setSettings(patch);
 }
 
 export async function getMode(): Promise<Mode> {
@@ -105,6 +144,9 @@ export function onSettingsChange(
         (changes.apiKeys.newValue as Record<string, string>) ?? {};
     if (changes.models)
       patch.models = (changes.models.newValue as Record<string, string>) ?? {};
+    if (changes.customProviders)
+      patch.customProviders =
+        (changes.customProviders.newValue as CustomProvider[]) ?? [];
     if (Object.keys(patch).length > 0) cb(patch);
   };
   chrome.storage.onChanged.addListener(listener);

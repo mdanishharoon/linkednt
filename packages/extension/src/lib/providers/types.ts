@@ -38,3 +38,24 @@ export interface Provider {
   keyPlaceholder: string;
   call(args: ProviderCallArgs): Promise<ProviderCallResult>;
 }
+
+/**
+ * A user-saved OpenAI-compatible endpoint. Stored in chrome.storage under
+ * settings.customProviders. Multi-slot from day one — the popup currently
+ * exposes a single-entry UI but the data model + storage already support
+ * an array so we can add a "manage all" view later without a migration.
+ */
+export interface CustomProvider {
+  /** Stable id, format `custom_<unix-ms>`. Used as Settings.providerId when
+   *  this provider is the active one. */
+  id: string;
+  /** User-given label shown in the provider dropdown. */
+  label: string;
+  /** Chat completions URL — e.g. http://localhost:11434/v1/chat/completions
+   *  for Ollama, or any OpenAI-compatible endpoint. */
+  baseUrl: string;
+  /** API key for this endpoint. Optional — leave empty for local Ollama. */
+  apiKey: string;
+  /** Default model id used when calling this endpoint. */
+  model: string;
+}
