@@ -1,6 +1,10 @@
 name: Landing CI & Deploy
 
 on:
+  # Manual trigger from the Actions tab — useful for re-deploying without a
+  # code change, or for the first deploy when the path filter below skips
+  # the initial push.
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
