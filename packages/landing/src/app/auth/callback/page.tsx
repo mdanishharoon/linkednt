@@ -18,44 +18,58 @@ import { useEffect, useState } from "react";
 
 const EXT_ID_RE = /^[a-p]{32}$/;
 
+// `pending` is the SSR/build-time placeholder; resolved to one of the other
+// kinds on the client during the lazy useState init.
 type Status =
-  | { kind: "bouncing" }
+  | { kind: "pending" }
+  | { kind: "bouncing"; redirectTo: string }
   | { kind: "fallback"; reason: string }
   | { kind: "error"; message: string };
 
+function resolveStatus(): Status {
+  const params = new URLSearchParams(window.location.search);
+  const hash = window.location.hash;
+
+  const oauthError = params.get("error_description") ?? params.get("error");
+  if (oauthError) {
+    return { kind: "error", message: oauthError };
+  }
+
+  const ext = params.get("ext") ?? "";
+  if (!EXT_ID_RE.test(ext)) {
+    return {
+      kind: "fallback",
+      reason:
+        "This page is the sign-in relay for the linkedn't extension. Open it from the extension's Sign in button.",
+    };
+  }
+
+  if (!hash || !hash.includes("access_token")) {
+    return {
+      kind: "fallback",
+      reason: "No session was returned. Try signing in again.",
+    };
+  }
+
+  return {
+    kind: "bouncing",
+    redirectTo: `https://${ext}.chromiumapp.org/${hash}`,
+  };
+}
+
 export default function AuthCallbackPage() {
-  const [status, setStatus] = useState<Status>({ kind: "bouncing" });
+  const [status] = useState<Status>(() => {
+    if (typeof window === "undefined") return { kind: "pending" };
+    return resolveStatus();
+  });
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const hash = window.location.hash; // includes the leading '#'
-
-    const oauthError = params.get("error_description") ?? params.get("error");
-    if (oauthError) {
-      setStatus({ kind: "error", message: oauthError });
-      return;
+    if (status.kind === "bouncing") {
+      window.location.replace(status.redirectTo);
     }
+  }, [status]);
 
-    const ext = params.get("ext") ?? "";
-    if (!EXT_ID_RE.test(ext)) {
-      setStatus({
-        kind: "fallback",
-        reason:
-          "This page is the sign-in relay for the linkedn't extension. Open it from the extension's Sign in button.",
-      });
-      return;
-    }
-
-    if (!hash || !hash.includes("access_token")) {
-      setStatus({
-        kind: "fallback",
-        reason: "No session was returned. Try signing in again.",
-      });
-      return;
-    }
-
-    window.location.replace(`https://${ext}.chromiumapp.org/${hash}`);
-  }, []);
+  const isLoading = status.kind === "pending" || status.kind === "bouncing";
 
   return (
     <main
@@ -68,6 +82,7 @@ export default function AuthCallbackPage() {
       }}
     >
       <div
+        suppressHydrationWarning
         style={{
           maxWidth: 460,
           width: "100%",
@@ -92,7 +107,7 @@ export default function AuthCallbackPage() {
           linkedn&apos;t
         </div>
 
-        {status.kind === "bouncing" && (
+        {isLoading && (
           <>
             <h1
               style={{
