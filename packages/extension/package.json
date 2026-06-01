@@ -8,8 +8,8 @@
     "build": "plasmo build",
     "package": "plasmo package",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --reporter=dot",
-    "test:coverage": "vitest run --coverage",
+    "test": "vitest run --reporter=dot --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
     "test:watch": "vitest"
   },
   "dependencies": {
