@@ -1,3 +1,4 @@
+import { sendToBackground } from "@plasmohq/messaging";
 import { useEffect, useRef, useState } from "react";
 
 import { listProviders } from "~lib/providers/registry";
@@ -8,7 +9,14 @@ import {
   setModel as saveModel,
   setSettings,
 } from "~lib/storage";
-import { type Mode, type Path } from "~lib/types";
+import {
+  type Mode,
+  type Path,
+  type SessionResponse,
+  type SessionUserShape,
+  type SignInResponse,
+  type SignOutResponse,
+} from "~lib/types";
 
 import "./popup.css";
 
@@ -54,6 +62,9 @@ function Popup() {
   const [mode, setMode] = useState<Mode>("strip");
   const [flashText, setFlashText] = useState("");
   const flashTimer = useRef<number | undefined>(undefined);
+  const [user, setUser] = useState<SessionUserShape | null>(null);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const provider = PROVIDERS.find((p) => p.id === providerId) ?? PROVIDERS[0];
 
@@ -75,7 +86,44 @@ function Popup() {
       const p = PROVIDERS.find((q) => q.id === pid);
       setModelInput(s.models[pid] || p?.defaultModel || "");
     });
+
+    void sendToBackground<undefined, SessionResponse>({ name: "session" }).then(
+      (r) => setUser(r.user),
+    );
   }, []);
+
+  async function handleSignIn() {
+    setAuthBusy(true);
+    setAuthError(null);
+    try {
+      const result = await sendToBackground<undefined, SignInResponse>({
+        name: "sign-in",
+      });
+      if (result.ok) {
+        setUser(result.user);
+        flash("Signed in");
+        console.info(`${LOG} signed in`, { userId: result.user.id });
+      } else if (result.code !== "USER_CANCELLED") {
+        setAuthError(result.error);
+        console.warn(`${LOG} sign in failed`, result);
+      }
+    } finally {
+      setAuthBusy(false);
+    }
+  }
+
+  async function handleSignOut() {
+    setAuthBusy(true);
+    setAuthError(null);
+    try {
+      await sendToBackground<undefined, SignOutResponse>({ name: "sign-out" });
+      setUser(null);
+      flash("Signed out");
+      console.info(`${LOG} signed out`);
+    } finally {
+      setAuthBusy(false);
+    }
+  }
 
   function flash(message: string) {
     setFlashText(message);
@@ -235,16 +283,42 @@ function Popup() {
             <div>
               <h2 id="credits-title">Credits</h2>
               <p className="summary">
-                Sign in to start the free trial — 30 rewrites on us.
+                {user
+                  ? `Signed in as ${user.email ?? "Google account"}.`
+                  : "Sign in to start the free trial — 30 rewrites on us."}
               </p>
             </div>
           </div>
-          <button className="primary-button" type="button" disabled>
-            <span className="button-icon" aria-hidden="true">
-              +
-            </span>
-            Sign in (coming soon)
-          </button>
+
+          {user ? (
+            <button
+              className="text-button"
+              type="button"
+              disabled={authBusy}
+              onClick={() => void handleSignOut()}
+            >
+              Sign out
+            </button>
+          ) : (
+            <button
+              className="primary-button"
+              type="button"
+              disabled={authBusy}
+              onClick={() => void handleSignIn()}
+            >
+              <span className="button-icon" aria-hidden="true">
+                +
+              </span>
+              {authBusy ? "Signing in…" : "Sign in with Google"}
+            </button>
+          )}
+
+          {authError && (
+            <p className="key-status" role="alert" style={{ color: "#b3261e" }}>
+              {authError}
+            </p>
+          )}
+
           <p className="honest-note">
             <strong>Honest note:</strong> Credits run on a tiny margin (a few
             cents over cost). Feel free to support the project — or stay on
