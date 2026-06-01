@@ -6,11 +6,16 @@ export const openrouterProvider: Provider = {
   label: "OpenRouter",
   defaultModel: "anthropic/claude-sonnet-4.6",
   modelSuggestions: [
-    "anthropic/claude-sonnet-4.6",
-    "anthropic/claude-haiku-4.5",
+    // Free tier first — most users on BYOK want zero-cost options.
+    "openai/gpt-oss-120b:free",
+    "openai/gpt-oss-20b:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "deepseek/deepseek-chat-v3.1:free",
+    // Paid, ordered cheapest → best.
     "openai/gpt-4o-mini",
     "deepseek/deepseek-v3",
-    "qwen/qwen3-32b",
+    "anthropic/claude-haiku-4.5",
+    "anthropic/claude-sonnet-4.6",
   ],
   consoleUrl: "https://openrouter.ai/keys",
   keyPlaceholder: "sk-or-...",
