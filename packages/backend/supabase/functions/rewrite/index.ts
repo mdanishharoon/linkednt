@@ -32,6 +32,20 @@ import { MODE_CREDITS } from "../_shared/types.ts";
 const LOG = "[linkednt:fn:rewrite]";
 const FREE_TRIAL_LIMIT = 30;
 
+// Per-user daily cap on the paid path. Free trial is already capped by
+// FREE_TRIAL_LIMIT lifetime so it doesn't need a daily cap. The number is a
+// soft cap (returns 402-style INSUFFICIENT_CREDITS with a daily-cap message)
+// — not a hard rate limit (that's the per-mode token bucket).
+const DAILY_PAID_CAP = Number(Deno.env.get("DAILY_PAID_CAP") ?? "500");
+
+// Global circuit breaker. Sum of cost_credits across all users since UTC
+// midnight; if exceeded the function 503s for everyone. Lets us trip the
+// killswitch via `supabase secrets set DAILY_CREDIT_CEILING=...` without a
+// code deploy. 0 disables the check.
+const DAILY_CREDIT_CEILING = Number(
+  Deno.env.get("DAILY_CREDIT_CEILING") ?? "0",
+);
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -88,14 +102,8 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
-  // Rate-limit before doing any expensive work.
-  const { data: allowed } = await admin.rpc("consume_rate_token", {
-    p_user_id: user.id,
-  });
-  if (allowed === false) {
-    return err("RATE_LIMITED", "Slow down — try again in a moment.", 429);
-  }
-
+  // Body must be parsed before rate-limiting so we can pick the right
+  // per-mode bucket.
   let body: { text?: string; mode?: Mode };
   try {
     body = await req.json();
@@ -109,6 +117,31 @@ Deno.serve(async (req) => {
   }
   if (text.length < 24) {
     return err("TOO_SHORT", "Not enough slop to work with.", 400);
+  }
+
+  // Global cost ceiling (kill switch). Polled cheaply per call.
+  if (DAILY_CREDIT_CEILING > 0) {
+    const { data: usedToday } = await admin.rpc("global_credits_used_today");
+    if (typeof usedToday === "number" && usedToday >= DAILY_CREDIT_CEILING) {
+      console.warn(`${LOG} global ceiling hit`, {
+        used: usedToday,
+        ceiling: DAILY_CREDIT_CEILING,
+      });
+      return err(
+        "HTTP",
+        "linkedn't is taking a breather. Try again in a few minutes.",
+        503,
+      );
+    }
+  }
+
+  // Per-mode token bucket — strip 30/min, summarise 15/min, roast 5/min.
+  const { data: allowed } = await admin.rpc("consume_rate_token", {
+    p_user_id: user.id,
+    p_mode: mode,
+  });
+  if (allowed === false) {
+    return err("RATE_LIMITED", "Slow down — try again in a moment.", 429);
   }
 
   const route = routeForMode(mode);
@@ -149,6 +182,24 @@ Deno.serve(async (req) => {
   const credCheck = await checkCredits(admin, user.id, cost);
   if (!credCheck.ok) {
     return err("INSUFFICIENT_CREDITS", credCheck.error, 402);
+  }
+
+  // If we're past the free trial, check + bump the daily paid cap before
+  // touching the provider. The check is atomic (SELECT FOR UPDATE +
+  // UPDATE in the SQL fn) so two concurrent calls can't both squeak past.
+  if (credCheck.path === "paid") {
+    const { data: dailyOk } = await admin.rpc("check_and_bump_daily", {
+      p_user_id: user.id,
+      p_cost: cost,
+      p_cap: DAILY_PAID_CAP,
+    });
+    if (dailyOk === false) {
+      return err(
+        "INSUFFICIENT_CREDITS",
+        `Daily cap reached (${DAILY_PAID_CAP} credits/day). Resets at UTC midnight.`,
+        402,
+      );
+    }
   }
 
   // ---- provider call ----
@@ -215,8 +266,7 @@ async function checkCredits(
   admin: ReturnType<typeof createClient>,
   userId: string,
   cost: number,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  // Free trial first.
+): Promise<{ ok: true; path: "free" | "paid" } | { ok: false; error: string }> {
   const { data: u } = await admin
     .from("users")
     .select("plan, free_used_lifetime")
@@ -225,14 +275,13 @@ async function checkCredits(
   if (!u) return { ok: false, error: "User row not found." };
 
   if ((u.free_used_lifetime ?? 0) + cost <= FREE_TRIAL_LIMIT) {
-    return { ok: true };
+    return { ok: true, path: "free" };
   }
 
-  // Paid balance.
   const { data: bal } = await admin.rpc("credits_balance", {
     p_user_id: userId,
   });
-  if ((bal ?? 0) >= cost) return { ok: true };
+  if ((bal ?? 0) >= cost) return { ok: true, path: "paid" };
 
   return {
     ok: false,

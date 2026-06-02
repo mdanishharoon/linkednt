@@ -670,7 +670,7 @@ function Popup() {
       {/* Credits / status hero */}
       <section className="credits-hero" aria-labelledby="credits-title">
         {showProxyHero && isSignedIn && status && (
-          <CreditsBlock status={status} />
+          <CreditsBlock status={status} userId={user?.id ?? null} />
         )}
         {showProxyHero && isSignedIn && !status && (
           <p className="credits-loading">Loading credits…</p>
@@ -786,10 +786,24 @@ function Popup() {
 // Sub-components
 // ============================================================
 
-function CreditsBlock({ status }: { status: AccountStatusShape }) {
+function CreditsBlock({
+  status,
+  userId,
+}: {
+  status: AccountStatusShape;
+  userId: string | null;
+}) {
   const free = Math.max(0, status.freeRemaining);
   const paid = Math.max(0, status.paidBalance);
   const total = free + paid;
+
+  // Pricing page on the landing knows how to take the user_id from the query
+  // string and forward it into the Polar checkout metadata. Falls back to
+  // the bare pricing URL if we somehow don't have a user id yet.
+  const pricingUrl = userId
+    ? `https://linkednt.com/pricing?user_id=${encodeURIComponent(userId)}`
+    : "https://linkednt.com/pricing";
+
   return (
     <div className="credits-block">
       <div className="credits-number">{total}</div>
@@ -800,8 +814,16 @@ function CreditsBlock({ status }: { status: AccountStatusShape }) {
             ? `free rewrites left of 30`
             : paid > 0
               ? `paid rewrites left`
-              : "Out of credits — top up or switch to BYOK"}
+              : "Out of credits"}
       </div>
+      <a
+        href={pricingUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="credits-buy"
+      >
+        {paid > 0 ? "Top up credits →" : "Buy credits →"}
+      </a>
     </div>
   );
 }

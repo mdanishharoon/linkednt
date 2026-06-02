@@ -21,6 +21,9 @@ export interface AccountStatus {
   plan: "free" | "paid";
   freeRemaining: number;
   paidBalance: number;
+  /** Credits debited from the paid balance today (UTC). Server caps at
+   *  DAILY_PAID_CAP per user. Free-trial usage doesn't count toward this. */
+  dailyUsed: number;
   fetchedAt: number;
 }
 
@@ -83,6 +86,7 @@ export async function fetchAccountStatus(): Promise<AccountStatusResult> {
     plan?: string;
     free_remaining?: number;
     paid_balance?: number;
+    daily_used?: number;
   } | null;
 
   if (!data) {
@@ -94,6 +98,7 @@ export async function fetchAccountStatus(): Promise<AccountStatusResult> {
     plan: data.plan === "paid" ? "paid" : "free",
     freeRemaining: data.free_remaining ?? 0,
     paidBalance: data.paid_balance ?? 0,
+    dailyUsed: data.daily_used ?? 0,
     fetchedAt: Date.now(),
   };
   await chrome.storage.local.set({ [STATUS_KEY]: status });
@@ -123,13 +128,16 @@ export async function decrementCachedBalance(cost: number): Promise<void> {
   const status = await getCachedAccountStatus();
   if (!status) return;
 
-  let { freeRemaining, paidBalance } = status;
+  let { freeRemaining, paidBalance, dailyUsed } = status;
   if (freeRemaining >= cost) {
     freeRemaining -= cost;
   } else {
     paidBalance = Math.max(0, paidBalance - cost);
+    // Mirror the server's check_and_bump_daily — only the paid path counts
+    // toward the daily soft cap.
+    dailyUsed += cost;
   }
   await chrome.storage.local.set({
-    [STATUS_KEY]: { ...status, freeRemaining, paidBalance },
+    [STATUS_KEY]: { ...status, freeRemaining, paidBalance, dailyUsed },
   });
 }

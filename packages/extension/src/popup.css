@@ -829,6 +829,32 @@ h2 {
   margin: 8px 0;
 }
 
+.credits-buy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  letter-spacing: -0.01em;
+  box-shadow: 0 2px 6px oklch(53.5% 0.18 253 / 0.28);
+  transition:
+    background 140ms ease,
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.credits-buy:hover {
+  background: var(--blue-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px oklch(53.5% 0.18 253 / 0.36);
+}
+
 .credits-cta {
   display: flex;
   flex-direction: column;

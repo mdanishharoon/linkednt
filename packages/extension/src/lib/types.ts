@@ -107,6 +107,7 @@ export interface AccountStatusShape {
   plan: "free" | "paid";
   freeRemaining: number;
   paidBalance: number;
+  dailyUsed: number;
   fetchedAt: number;
 }
 
