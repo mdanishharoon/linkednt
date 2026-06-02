@@ -1229,6 +1229,16 @@ a {
   font-size: 14px;
   color: var(--muted-2);
 }
+.pricing-error {
+  margin: 22px auto 0;
+  max-width: 480px;
+  font-size: 14px;
+  padding: 12px 16px;
+  background: #fde7e9;
+  border: 1px solid #f4c4ca;
+  border-radius: 12px;
+  color: #8a1c25;
+}
 .pricing-code {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 13px;

@@ -3,23 +3,27 @@
 import Link from "next/link";
 import { useState } from "react";
 
-// Pricing page — driven entirely by the PACKS array. Each pack has a Polar
-// product id (filled in after creating the products in the Polar dashboard).
-// The Buy button builds a Polar Checkout URL with our metadata baked in:
+// Pricing page — driven by PACKS. Each pack has a Polar product id from the
+// dashboard. The Buy button POSTs to our Supabase edge function
+// /create-polar-checkout with { productId, userId, credits }; that fn calls
+// Polar's API to create a checkout session with metadata baked in and
+// returns the session URL. We then redirect the browser there.
 //
-//   https://buy.polar.sh/<productId>?metadata[user_id]=<uid>&metadata[credits]=<n>
+// Going through the API (instead of constructing a static buy.polar.sh
+// URL) is the only reliable way to attach per-request metadata — the
+// dashboard's Checkout Link URLs require pre-configured metadata
+// templates, which we don't have because user_id varies per checkout.
 //
-// The polar-webhook edge function reads that metadata on `order.paid` and
-// inserts a credits_ledger row for user_id with delta = credits.
+// On payment, Polar fires order.paid → /polar-webhook reads the same
+// metadata and inserts a credits_ledger row.
 
 interface Pack {
   id: string;
   label: string;
   priceUsd: number;
   credits: number;
-  /** Replace with the real Polar product id after creating it in the Polar
-   *  dashboard. While empty, the Buy button is disabled and shows a
-   *  "Coming soon" badge. */
+  /** Polar product id from the dashboard. Empty string disables the Buy
+   *  button. */
   polarProductId: string;
   highlight?: string;
   blurb: string;
@@ -31,7 +35,7 @@ const PACKS: Pack[] = [
     label: "Starter",
     priceUsd: 5,
     credits: 500,
-    polarProductId: "",
+    polarProductId: "e3780aaa-6f49-4923-8b99-772da323eeab",
     blurb:
       "Enough for about 330 rewrites across the three voices. Good for trying the paid path without commitment.",
   },
@@ -40,32 +44,75 @@ const PACKS: Pack[] = [
     label: "Pro",
     priceUsd: 20,
     credits: 2500,
-    polarProductId: "",
+    polarProductId: "4032d550-a0ee-475b-9c09-dbb7a542243b",
     highlight: "Best value · 25% bonus",
     blurb:
       "Heavier feed-cleaning. About 1,600 rewrites. Credits never expire and stack on top of any free trial you have left.",
   },
 ];
 
-function buildCheckoutUrl(pack: Pack, userId: string | null): string | null {
-  if (!pack.polarProductId) return null;
-  const base = `https://buy.polar.sh/${pack.polarProductId}`;
-  if (!userId) return base;
-  const params = new URLSearchParams();
-  params.set("metadata[user_id]", userId);
-  params.set("metadata[credits]", String(pack.credits));
-  return `${base}?${params.toString()}`;
+// Plumbed via NEXT_PUBLIC_* env (set in GitHub Actions Variables; mirrored
+// into the build). The anon key is fine to ship — RLS is enforced at the
+// database level and the create-polar-checkout function is set
+// verify_jwt=false anyway.
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ??
+  "https://gmzisvcyvjrsjrovvysz.supabase.co";
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+
+async function startCheckout(pack: Pack, userId: string): Promise<string> {
+  const res = await fetch(
+    `${SUPABASE_URL}/functions/v1/create-polar-checkout`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({
+        productId: pack.polarProductId,
+        userId,
+        credits: pack.credits,
+      }),
+    },
+  );
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as {
+      error?: string;
+    } | null;
+    throw new Error(data?.error ?? `Checkout returned ${res.status}.`);
+  }
+  const data = (await res.json()) as { url?: string };
+  if (!data.url) throw new Error("Checkout response missing url.");
+  return data.url;
 }
 
 export default function PricingPage() {
   // Read once during lazy init; window is undefined on the SSR pass so we
-  // start as null and pick up the real value on the client render. Avoids
-  // the react-hooks/set-state-in-effect rule that fires on the more
-  // obvious useEffect + setState pattern.
+  // start as null and pick up the real value on the client render.
   const [userId] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("user_id");
   });
+  const [busyPackId, setBusyPackId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleBuy(pack: Pack) {
+    if (!userId) return;
+    setBusyPackId(pack.id);
+    setError(null);
+    try {
+      const url = await startCheckout(pack, userId);
+      // .assign() is the method form — the eslint immutability rule rejects
+      // the equivalent `window.location.href = url` even though it's a
+      // standard browser API.
+      window.location.assign(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Checkout failed.");
+      setBusyPackId(null);
+    }
+  }
 
   return (
     <main className="pricing">
@@ -81,8 +128,8 @@ export default function PricingPage() {
         </p>
         {!userId && (
           <p className="pricing-signin">
-            <strong>Open the extension popup first</strong> — click the gear,
-            then &ldquo;Buy credits&rdquo;. The popup hands your account id
+            <strong>Open the extension popup first</strong> — click the
+            &ldquo;Buy credits&rdquo; pill. The popup hands your account id
             through so the credits land in the right place.
           </p>
         )}
@@ -92,13 +139,18 @@ export default function PricingPage() {
             <code className="pricing-code">{userId.slice(0, 8)}…</code>
           </p>
         )}
+        {error && (
+          <p className="pricing-error" role="alert">
+            {error}
+          </p>
+        )}
       </header>
 
       <section className="pack-grid" aria-label="Credit packs">
         {PACKS.map((pack) => {
-          const url = buildCheckoutUrl(pack, userId);
           const available = pack.polarProductId !== "";
-          const buyable = available && userId;
+          const buyable = available && !!userId;
+          const busy = busyPackId === pack.id;
           return (
             <article
               key={pack.id}
@@ -116,20 +168,20 @@ export default function PricingPage() {
                 <strong>{pack.credits.toLocaleString()}</strong> credits
               </div>
               <p className="pack-blurb">{pack.blurb}</p>
-              {buyable ? (
-                <a
-                  className="pack-buy"
-                  href={url ?? "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Buy {pack.label} →
-                </a>
-              ) : (
-                <button className="pack-buy is-disabled" disabled type="button">
-                  {available ? "Open popup to buy" : "Coming soon"}
-                </button>
-              )}
+              <button
+                type="button"
+                className={`pack-buy ${!buyable ? "is-disabled" : ""}`}
+                disabled={!buyable || busy}
+                onClick={() => void handleBuy(pack)}
+              >
+                {busy
+                  ? "Opening checkout…"
+                  : !available
+                    ? "Coming soon"
+                    : !userId
+                      ? "Open popup to buy"
+                      : `Buy ${pack.label} →`}
+              </button>
             </article>
           );
         })}
