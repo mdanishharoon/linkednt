@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Source-of-truth vector asset for the linkedn't badge. Same design used by
+  the landing favicon (packages/landing/src/app/icon.tsx) and the raster
+  toolbar icons (packages/extension/assets/icon{16,32,48,128,}.png).
+
+  Coordinate system is 512×512 so the proportions line up with what
+  scripts/export-extension-icon.tsx generates from satori. The text is set
+  in Plus Jakarta Sans ExtraBold via a fallback font-family stack so this
+  file renders correctly even when opened standalone; the rasterized PNGs
+  embed the actual Jakarta font face.
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  width="512"
+  height="512"
+  role="img"
+  aria-label="linkedn't"
+>
+  <rect width="512" height="512" rx="120" ry="120" fill="#2D64BC" />
+  <text
+    x="50%"
+    y="50%"
+    text-anchor="middle"
+    dominant-baseline="central"
+    font-family="'Plus Jakarta Sans', 'Plus Jakarta Sans ExtraBold', Inter, system-ui, sans-serif"
+    font-weight="800"
+    font-size="320"
+    letter-spacing="-6"
+    fill="#FFFFFF"
+  ><tspan>n</tspan><tspan font-size="248" dx="-4" dy="-2">&#x2019;</tspan><tspan dx="-4" dy="2">t</tspan></text>
+</svg>

@@ -35,14 +35,6 @@ export type AccountStatusErrorCode =
   | "NETWORK";
 
 export async function fetchAccountStatus(): Promise<AccountStatusResult> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return {
-      ok: false,
-      code: "NOT_CONFIGURED",
-      error: "Backend isn't configured in this build.",
-    };
-  }
-
   const jwt = await getAccessToken();
   if (!jwt) {
     return {

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Full wordmark — "linked" in ink + "n't" inside the blue badge. Mirrors the
+  Logo() React component on the landing (packages/landing/src/components/
+  landing/Logo.tsx). Use this for CWS promo tiles, README headers, or any
+  surface that needs the wordmark instead of just the square icon.
+
+  Coordinate system is 1000×280 — gives the wordmark room to breathe on
+  rectangular promo art (CWS small tile is 440×280; this scales cleanly).
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 1000 280"
+  width="1000"
+  height="280"
+  role="img"
+  aria-label="linkedn't"
+>
+  <g
+    font-family="'Plus Jakarta Sans', 'Plus Jakarta Sans ExtraBold', Inter, system-ui, sans-serif"
+    font-weight="800"
+    font-size="200"
+    letter-spacing="-4"
+  >
+    <text x="40" y="200" fill="#191D22">linked</text>
+    <rect x="660" y="44" width="280" height="200" rx="46" ry="46" fill="#2D64BC" />
+    <text
+      x="800"
+      y="200"
+      text-anchor="middle"
+      fill="#FFFFFF"
+    ><tspan>n</tspan><tspan font-size="158">&#x2019;</tspan><tspan>t</tspan></text>
+  </g>
+</svg>

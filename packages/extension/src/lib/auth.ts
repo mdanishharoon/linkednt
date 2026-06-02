@@ -51,14 +51,6 @@ export type AuthErrorCode =
   | "NETWORK";
 
 export async function signInWithGoogle(): Promise<AuthResult> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return {
-      ok: false,
-      code: "NOT_CONFIGURED",
-      error: "Backend isn't configured in this build.",
-    };
-  }
-
   const extensionId = chrome.runtime.id;
   const redirectTo = `${SITE_URL}/auth/callback/?ext=${extensionId}`;
   const authUrl =
@@ -159,14 +151,6 @@ export async function getAccessToken(): Promise<string | null> {
 }
 
 async function refreshSession(refreshToken: string): Promise<AuthResult> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return {
-      ok: false,
-      code: "NOT_CONFIGURED",
-      error: "Backend isn't configured.",
-    };
-  }
-
   let res: Response;
   try {
     res = await fetch(

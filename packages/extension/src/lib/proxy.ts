@@ -23,13 +23,6 @@ export interface ProxyCallArgs {
 export async function callProxyRewrite(
   args: ProxyCallArgs,
 ): Promise<RewriteResponse> {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    return {
-      ok: false,
-      code: "PROXY_UNAVAILABLE",
-      error: "Backend isn't configured in this build. Switch to Bring own key.",
-    };
-  }
   if (!args.sessionJwt) {
     return {
       ok: false,
