@@ -224,6 +224,25 @@ function attachSettingsListener() {
   onSettingsChange((patch) => {
     info("settings changed", patch);
     settings = { ...(settings as Settings), ...patch };
+
+    // Any change that affects the rewrite output should invalidate the
+    // per-tab cache + dismiss visible cards so the next deslop click
+    // refetches with the new config — no reload required.
+    const invalidates =
+      patch.mode !== undefined ||
+      patch.providerId !== undefined ||
+      patch.path !== undefined ||
+      patch.apiKeys !== undefined ||
+      patch.models !== undefined ||
+      patch.customProviders !== undefined;
+    if (invalidates) {
+      rewriteCache.clear();
+      teardownAllCards();
+      info("cache invalidated by settings change", {
+        keys: Object.keys(patch),
+      });
+    }
+
     if (patch.enabled === undefined) return;
 
     if (patch.enabled) {

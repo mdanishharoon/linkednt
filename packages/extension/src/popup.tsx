@@ -90,6 +90,9 @@ function Popup() {
     null,
   );
 
+  // ---- key visibility ----
+  const [showFullKey, setShowFullKey] = useState(false);
+
   const allProviders = listAllProviders(customProviders);
   const provider =
     allProviders.find((p) => p.id === providerId) ?? allProviders[0];
@@ -172,6 +175,7 @@ function Popup() {
       setModelInput(s.models[pid] || p?.defaultModel || "");
     }
     setKeyInput("");
+    setShowFullKey(false);
   }
 
   async function refreshStatus(force = false) {
@@ -353,9 +357,10 @@ function Popup() {
 
   // ---- derived bits ----
 
-  const savedKeySummary = savedKey
-    ? `${savedKey.slice(0, 6)}...${savedKey.slice(-4)}`
+  const savedKeyPreview = savedKey
+    ? `${savedKey.slice(0, 6)}…${savedKey.slice(-4)}`
     : "No key saved";
+  const savedKeyShown = showFullKey && savedKey ? savedKey : savedKeyPreview;
 
   // ============================================================
   // VIEWS
@@ -532,18 +537,29 @@ function Popup() {
                   }}
                 />
                 <small className="key-status">
-                  On file: {savedKeySummary}
-                  {provider?.consoleUrl && (
-                    <>
-                      {" "}
-                      <a
-                        href={provider.consoleUrl}
-                        target="_blank"
-                        rel="noreferrer"
+                  <span className="key-status-line">
+                    <span className="key-status-label">On file:</span>{" "}
+                    <span className="key-status-value">{savedKeyShown}</span>
+                    {savedKey && (
+                      <button
+                        type="button"
+                        className="key-reveal"
+                        onClick={() => setShowFullKey((v) => !v)}
+                        aria-pressed={showFullKey}
                       >
-                        Get one →
-                      </a>
-                    </>
+                        {showFullKey ? "Hide" : "Reveal"}
+                      </button>
+                    )}
+                  </span>
+                  {provider?.consoleUrl && (
+                    <a
+                      className="key-console"
+                      href={provider.consoleUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Get one →
+                    </a>
                   )}
                 </small>
               </label>
@@ -618,12 +634,10 @@ function Popup() {
           )}
         </section>
 
-        <footer className="footer">
+        <footer className="footer footer-centered">
           <a href="https://linkednt.com" target="_blank" rel="noreferrer">
             linkednt.com
           </a>
-          <span aria-hidden="true">·</span>
-          <span>Runs only on LinkedIn</span>
         </footer>
       </main>
     );
@@ -759,12 +773,10 @@ function Popup() {
         </div>
       </section>
 
-      <footer className="footer">
+      <footer className="footer footer-centered">
         <a href="https://linkednt.com" target="_blank" rel="noreferrer">
           linkednt.com
         </a>
-        <span aria-hidden="true">·</span>
-        <span aria-live="polite">{flashText || "Runs only on LinkedIn"}</span>
       </footer>
     </main>
   );

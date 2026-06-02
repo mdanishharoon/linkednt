@@ -49,19 +49,15 @@ select {
   min-height: 456px;
   padding: 14px;
   overflow: hidden;
-  background:
-    linear-gradient(90deg, oklch(86% 0.018 248 / 0.34) 1px, transparent 1px),
-    linear-gradient(180deg, oklch(86% 0.018 248 / 0.34) 1px, transparent 1px),
-    linear-gradient(
-      155deg,
-      oklch(99% 0.006 245),
-      var(--page) 58%,
-      oklch(95.5% 0.021 253)
-    );
-  background-size:
-    32px 32px,
-    32px 32px,
-    auto;
+  /* Smooth diagonal gradient — no grid lines. Anchored at the top-left in a
+     warm off-white and falling through a cool page tone, hinting at the
+     blue brand without ever showing it as a slab. */
+  background: linear-gradient(
+    160deg,
+    oklch(99.2% 0.006 245) 0%,
+    oklch(97% 0.012 248) 38%,
+    oklch(94% 0.026 253) 100%
+  );
 }
 
 .shell::after {
@@ -599,21 +595,63 @@ h2 {
 .key-status {
   margin-top: 4px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
+  gap: 4px 8px;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.4;
 }
 
-.key-status a {
+.key-status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.key-status-label {
+  color: var(--muted);
+}
+
+.key-status-value {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.key-reveal {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.key-reveal:hover {
+  background: var(--surface-2);
+  border-color: var(--line-strong);
+}
+
+.key-console {
   margin-left: auto;
   color: var(--blue-deep);
   font-weight: 800;
   text-decoration: none;
 }
 
-.key-status a:hover {
+.key-console:hover {
   color: var(--blue);
 }
 
@@ -629,6 +667,12 @@ h2 {
   color: var(--muted);
   font-size: 11px;
   animation-delay: 170ms;
+}
+
+/* Used on Home + Settings now that we dropped the "Runs only on LinkedIn"
+   sub-string. Single centered link, no separators. */
+.footer-centered {
+  justify-content: center;
 }
 
 .footer a {
