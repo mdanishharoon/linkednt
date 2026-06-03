@@ -638,6 +638,14 @@ function Popup() {
           <a href="https://linkednt.com" target="_blank" rel="noreferrer">
             linkednt.com
           </a>
+          <span aria-hidden="true">·</span>
+          <a
+            href="https://linkednt.com/privacy"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Privacy
+          </a>
         </footer>
       </main>
     );
