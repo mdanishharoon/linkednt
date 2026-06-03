@@ -8,11 +8,9 @@
 // ticks down without the popup re-fetching.
 
 import { getAccessToken } from "./auth";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config";
 
 const LOG = "[linkednt:account]";
-
-const SUPABASE_URL = process.env.PLASMO_PUBLIC_SUPABASE_URL ?? "";
-const SUPABASE_ANON_KEY = process.env.PLASMO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 const STATUS_KEY = "account.status";
 

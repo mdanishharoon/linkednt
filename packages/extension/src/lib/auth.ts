@@ -16,11 +16,9 @@
 // endpoint when within 60s of expiry. Used by the rewrite background handler
 // before each /rewrite proxy call.
 
-const LOG = "[linkednt:auth]";
+import { SITE_URL, SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config";
 
-const SUPABASE_URL = process.env.PLASMO_PUBLIC_SUPABASE_URL ?? "";
-const SUPABASE_ANON_KEY = process.env.PLASMO_PUBLIC_SUPABASE_ANON_KEY ?? "";
-const SITE_URL = process.env.PLASMO_PUBLIC_SITE_URL ?? "https://linkednt.com";
+const LOG = "[linkednt:auth]";
 
 const SESSION_KEY = "auth.session";
 const REFRESH_LEEWAY_MS = 60_000;

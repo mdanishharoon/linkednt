@@ -5,10 +5,8 @@
 // PROXY_UNAVAILABLE in the popup. Once auth is wired, we read the session
 // from chrome.storage and pass it as the Authorization header.
 
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config";
 import type { Mode, RewriteResponse } from "./types";
-
-const SUPABASE_URL = process.env.PLASMO_PUBLIC_SUPABASE_URL ?? "";
-const SUPABASE_ANON_KEY = process.env.PLASMO_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 const LOG = "[linkednt:proxy]";
 
