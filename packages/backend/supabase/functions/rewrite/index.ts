@@ -167,8 +167,52 @@ Deno.serve(async (req) => {
       .eq("mode", mode)
       .eq("model_version", modelVersion);
 
-    await debitOrTrack(admin, user.id, mode, cost, true, route, inputHash, 0);
-    console.info(`${LOG} cache hit`, { mode, user: user.id });
+    // Idempotency guard for the retry-after-timeout race:
+    //
+    //   t=0   client POSTs, server starts the Sonnet call
+    //   t=8s  client AbortController fires, popup shows the error card
+    //   t=12s server finishes, writes rewrite_cache, debits 1 credit
+    //   t=15s user hits Retry, server hits cache — without this guard
+    //         we'd debit a 2nd credit for what is effectively the same
+    //         rewrite the user only ever saw once.
+    //
+    // Bypasses the debit if the same user already paid for the same
+    // (input_hash, mode) within the last hour. usage_log_input_hash_idx
+    // covers the lookup; the extra filters narrow it to a single row.
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: alreadyPaid } = await admin
+      .from("usage_log")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("input_hash", inputHash)
+      .eq("mode", mode)
+      .gt("cost_credits", 0)
+      .gte("created_at", oneHourAgo)
+      .limit(1)
+      .maybeSingle();
+
+    if (alreadyPaid) {
+      // Log the cache hit at cost_credits=0 so analytics still see the
+      // request, but the balance stays put.
+      await admin.from("usage_log").insert({
+        user_id: user.id,
+        mode,
+        provider: route.providerId,
+        model: route.model,
+        cache_hit: true,
+        input_hash: inputHash,
+        cost_credits: 0,
+        latency_ms: 0,
+      });
+      console.info(`${LOG} cache hit, idempotent — no debit`, {
+        mode,
+        user: user.id,
+      });
+    } else {
+      await debitOrTrack(admin, user.id, mode, cost, true, route, inputHash, 0);
+      console.info(`${LOG} cache hit`, { mode, user: user.id });
+    }
+
     const ok: RewriteResponse = {
       ok: true,
       rewrite: cacheHit.data.output,
@@ -220,6 +264,18 @@ Deno.serve(async (req) => {
   const ms = Math.round(performance.now() - startedAt);
 
   if (!result.ok) {
+    // Roll back the daily-counter reservation from check_and_bump_daily.
+    // We bumped it pre-flight so concurrent calls can't both squeak past
+    // the cap; on a provider failure we never debit credits, so the
+    // reservation has to be released — otherwise repeated Sonnet flakes
+    // would silently shrink a user's daily cap until they hit a wall they
+    // never actually used.
+    if (credCheck.path === "paid") {
+      await admin.rpc("decrement_daily", {
+        p_user_id: user.id,
+        p_cost: cost,
+      });
+    }
     await admin.from("usage_log").insert({
       user_id: user.id,
       mode,
