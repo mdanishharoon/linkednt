@@ -514,9 +514,16 @@ async function deslopPost(post: HTMLElement, button: HTMLButtonElement) {
         error: response.error,
         ms,
       });
-      loadingCard.replaceWith(
-        createErrorCard(response.error, ctx, response.code),
+      const errCard = createErrorCard(
+        response.error,
+        ctx,
+        response.code,
+        () => {
+          errCard.remove();
+          void deslopPost(post, button);
+        },
       );
+      loadingCard.replaceWith(errCard);
     } else {
       stats.rewriteSuccess += 1;
       info("rewrite ok", {
@@ -533,7 +540,11 @@ async function deslopPost(post: HTMLElement, button: HTMLButtonElement) {
       err instanceof Error ? err.message : "Couldn't deslop this one.";
     stats.lastError = message;
     error("rewrite threw", err);
-    loadingCard.replaceWith(createErrorCard(message, ctx));
+    const errCard = createErrorCard(message, ctx, undefined, () => {
+      errCard.remove();
+      void deslopPost(post, button);
+    });
+    loadingCard.replaceWith(errCard);
   } finally {
     button.disabled = false;
     button.classList.remove("lo-loading");

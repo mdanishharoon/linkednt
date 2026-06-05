@@ -74,6 +74,7 @@ export function createErrorCard(
   text: string,
   ctx: CardContext,
   code?: string,
+  onRetry?: () => void,
 ): HTMLElement {
   const card = makeCard("error", ctx);
   const inner = card.querySelector<HTMLElement>(".lo-card-inner")!;
@@ -93,7 +94,7 @@ export function createErrorCard(
   appendInlineWatermark(body);
 
   inner.append(kicker, body);
-  appendFooter(card, ctx);
+  appendFooter(card, ctx, onRetry);
   return card;
 }
 
@@ -123,9 +124,29 @@ function makeCard(
   return card;
 }
 
-function appendFooter(card: HTMLElement, ctx: CardContext): void {
+function appendFooter(
+  card: HTMLElement,
+  ctx: CardContext,
+  onRetry?: () => void,
+): void {
   const footer = document.createElement("div");
   footer.className = "lo-footer";
+
+  const actions = document.createElement("div");
+  actions.className = "lo-footer-actions";
+
+  if (onRetry) {
+    const retryBtn = document.createElement("button");
+    retryBtn.type = "button";
+    retryBtn.className = "lo-retry-btn";
+    retryBtn.textContent = "↺ Retry";
+    retryBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      onRetry();
+    });
+    actions.appendChild(retryBtn);
+  }
 
   const showOriginal = document.createElement("button");
   showOriginal.type = "button";
@@ -137,12 +158,13 @@ function appendFooter(card: HTMLElement, ctx: CardContext): void {
     showContainer(ctx.hiddenContainer);
     card.style.display = "none";
   });
+  actions.appendChild(showOriginal);
 
   const watermark = document.createElement("span");
   watermark.className = "lo-watermark";
   watermark.textContent = "linkednt.com";
 
-  footer.append(showOriginal, watermark);
+  footer.append(actions, watermark);
   card.appendChild(footer);
 }
 

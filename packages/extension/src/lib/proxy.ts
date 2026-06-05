@@ -9,6 +9,12 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config";
 import type { Mode, RewriteResponse } from "./types";
 
 const LOG = "[linkednt:proxy]";
+// Generous client-side timeout — Sonnet 4.6 on a 4-sentence roast can run
+// 15-20s on a bad day. The edge fn runs to completion regardless of client
+// abort, writes the cache, and an idempotency guard prevents double-charging
+// when a retry hits that cache. So this timeout is purely a UX backstop, not
+// a circuit breaker.
+const PROXY_TIMEOUT_MS = 25_000;
 
 export interface ProxyCallArgs {
   text: string;
@@ -30,6 +36,8 @@ export async function callProxyRewrite(
   }
 
   const startedAt = performance.now();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), PROXY_TIMEOUT_MS);
   let response: Response;
   try {
     response = await fetch(`${SUPABASE_URL}/functions/v1/rewrite`, {
@@ -40,14 +48,25 @@ export async function callProxyRewrite(
         Authorization: `Bearer ${args.sessionJwt}`,
       },
       body: JSON.stringify({ text: args.text, mode: args.mode }),
+      signal: controller.signal,
     });
   } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      console.warn(`${LOG} request timed out after ${PROXY_TIMEOUT_MS}ms`);
+      return {
+        ok: false,
+        code: "TIMEOUT",
+        error: "Server took too long — tap Retry to try again.",
+      };
+    }
     console.error(`${LOG} fetch threw`, err);
     return {
       ok: false,
       code: "NETWORK",
       error: err instanceof Error ? err.message : "Network request failed.",
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   const ms = Math.round(performance.now() - startedAt);

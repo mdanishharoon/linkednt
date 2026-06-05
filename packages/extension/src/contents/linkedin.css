@@ -144,13 +144,18 @@
   gap: 12px;
 }
 
-.lo-show-original {
+.lo-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lo-show-original,
+.lo-retry-btn {
   min-height: 28px;
   padding: 0 12px;
   border: 0;
   border-radius: 999px;
-  background: rgba(10, 102, 194, 0.08);
-  color: #0a66c2;
   cursor: pointer;
   font: inherit;
   font-size: 12px;
@@ -161,11 +166,29 @@
     transform 160ms ease;
 }
 
+.lo-show-original {
+  background: rgba(10, 102, 194, 0.08);
+  color: #0a66c2;
+}
+
 .lo-show-original:hover {
   background: rgba(10, 102, 194, 0.16);
 }
 
 .lo-show-original:active {
+  transform: scale(0.98);
+}
+
+.lo-retry-btn {
+  background: rgba(180, 83, 9, 0.08);
+  color: #b45309;
+}
+
+.lo-retry-btn:hover {
+  background: rgba(180, 83, 9, 0.16);
+}
+
+.lo-retry-btn:active {
   transform: scale(0.98);
 }
 
@@ -289,6 +312,7 @@
   .lo-deslop-btn,
   .lo-deslop-btn > span:first-child,
   .lo-show-original,
+  .lo-retry-btn,
   .lo-scan,
   .lo-skeleton,
   .lo-toast,

@@ -34,6 +34,7 @@ export type RewriteErrorCode =
   | "INSUFFICIENT_CREDITS"
   | "HTTP"
   | "NETWORK"
+  | "TIMEOUT"
   | "PROVIDER_UNKNOWN"
   | "PROXY_UNAVAILABLE";
 
