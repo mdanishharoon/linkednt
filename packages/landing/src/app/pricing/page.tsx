@@ -31,23 +31,32 @@ interface Pack {
 
 const PACKS: Pack[] = [
   {
-    id: "starter",
-    label: "Starter",
-    priceUsd: 5,
-    credits: 500,
+    id: "unemployed",
+    label: "Unemployed",
+    priceUsd: 4,
+    credits: 1800,
     polarProductId: "e3780aaa-6f49-4923-8b99-772da323eeab",
     blurb:
-      "Enough for about 330 rewrites across the three voices. Good for trying the paid path without commitment.",
+      "1,800 credits. Roughly 1,800 Strips, 900 Dry Translators, or 600 Internal Monologues. A couple months of casual feed-cleaning.",
   },
   {
-    id: "pro",
-    label: "Pro",
-    priceUsd: 20,
-    credits: 2500,
-    polarProductId: "4032d550-a0ee-475b-9c09-dbb7a542243b",
-    highlight: "Best value · 25% bonus",
+    id: "open-to-work",
+    label: "Open to Work",
+    priceUsd: 6,
+    credits: 3000,
+    polarProductId: "efa662f9-70c8-4d8b-9976-1b0df7f7a1db",
     blurb:
-      "Heavier feed-cleaning. About 1,600 rewrites. Credits never expire and stack on top of any free trial you have left.",
+      "3,000 credits. For the person who has a lot of thoughts about other people's journeys.",
+  },
+  {
+    id: "thought-leader",
+    label: "Thought Leader",
+    priceUsd: 9,
+    credits: 5000,
+    polarProductId: "4032d550-a0ee-475b-9c09-dbb7a542243b",
+    highlight: "Best value · 18% off",
+    blurb:
+      "5,000 credits. The pack for someone who truly understands the LinkedIn ecosystem. Credits never expire.",
   },
 ];
 
