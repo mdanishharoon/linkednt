@@ -13,7 +13,16 @@
 //     ack'd with 200 so Polar stops retrying
 //
 // Env vars (set via `supabase secrets set`):
-//   - POLAR_WEBHOOK_SECRET
+//   - POLAR_WEBHOOK_SECRET           — live webhook signing secret
+//   - POLAR_SANDBOX_WEBHOOK_SECRET   — sandbox webhook signing secret
+//
+// We verify against BOTH secrets and accept whichever matches. Reason:
+// if you keep webhook endpoints configured in both the live AND sandbox
+// Polar dashboards (which is the normal steady state), events from
+// either source need to validate without us flipping anything. The
+// HMAC-SHA256 collision space is large enough that "either matches"
+// stays as safe as "this exact one matches" — an attacker would need to
+// forge a signature valid under one of two secrets they don't have.
 //
 // Auto-injected by the platform:
 //   - SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
@@ -101,9 +110,10 @@ Deno.serve(async (req) => {
     return ack("Method not allowed", 405);
   }
 
-  const secret = Deno.env.get("POLAR_WEBHOOK_SECRET");
-  if (!secret) {
-    console.error(`${LOG} missing POLAR_WEBHOOK_SECRET`);
+  const liveSecret = Deno.env.get("POLAR_WEBHOOK_SECRET");
+  const sandboxSecret = Deno.env.get("POLAR_SANDBOX_WEBHOOK_SECRET");
+  if (!liveSecret && !sandboxSecret) {
+    console.error(`${LOG} no webhook secret configured`);
     return ack("Server misconfigured", 500);
   }
 
@@ -113,9 +123,26 @@ Deno.serve(async (req) => {
     req.headers.get("polar-webhook-signature") ??
     req.headers.get("x-polar-signature");
 
-  const verified = await verifySignature(body, sig, secret);
+  // Try both secrets; accept whichever validates. Lets live + sandbox
+  // webhooks share one endpoint without flipping anything.
+  let verified = false;
+  let matchedEnv: "live" | "sandbox" | null = null;
+  if (liveSecret && (await verifySignature(body, sig, liveSecret))) {
+    verified = true;
+    matchedEnv = "live";
+  } else if (
+    sandboxSecret &&
+    (await verifySignature(body, sig, sandboxSecret))
+  ) {
+    verified = true;
+    matchedEnv = "sandbox";
+  }
   if (!verified) {
-    console.warn(`${LOG} signature mismatch`, { hasSig: !!sig });
+    console.warn(`${LOG} signature mismatch`, {
+      hasSig: !!sig,
+      hasLive: !!liveSecret,
+      hasSandbox: !!sandboxSecret,
+    });
     return ack("Invalid signature", 401);
   }
 
@@ -204,6 +231,6 @@ Deno.serve(async (req) => {
     .eq("id", userId)
     .neq("plan", "paid");
 
-  console.info(`${LOG} credited`, { webhookId, userId, credits });
+  console.info(`${LOG} credited`, { webhookId, userId, credits, matchedEnv });
   return ack("ok", 200);
 });

@@ -21,12 +21,16 @@
 //   - The Polar API token never leaves the server.
 //
 // Env vars (set via `supabase secrets set`):
-//   - POLAR_ACCESS_TOKEN
 //   - POLAR_ENV: "sandbox" (default) or "production". Defaulting to sandbox
 //     means a missing/typoed env never accidentally moves real money — you
-//     have to explicitly opt in to live charges. The access token has to
-//     match the chosen env (sandbox tokens won't work against production
-//     and vice versa); Polar 401s on mismatch.
+//     have to explicitly opt in to live charges. Switching this single var
+//     swaps both the API base AND the credentials below, so test/live can
+//     coexist as two sets of secrets and flipping is one command.
+//   - POLAR_ACCESS_TOKEN         — live org token (used when POLAR_ENV=production)
+//   - POLAR_SANDBOX_TOKEN        — sandbox org token (used when POLAR_ENV=sandbox)
+//
+// Tokens are env-specific: sandbox tokens 401 against the live API and
+// vice versa, so the lookup order is keyed on POLAR_ENV.
 
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
@@ -40,11 +44,14 @@ const CORS_HEADERS = {
 };
 
 const POLAR_ENV = (Deno.env.get("POLAR_ENV") ?? "sandbox").toLowerCase();
-const POLAR_API_BASE =
-  POLAR_ENV === "production"
-    ? "https://api.polar.sh"
-    : "https://sandbox-api.polar.sh";
+const IS_PRODUCTION = POLAR_ENV === "production";
+const POLAR_API_BASE = IS_PRODUCTION
+  ? "https://api.polar.sh"
+  : "https://sandbox-api.polar.sh";
 const POLAR_API = `${POLAR_API_BASE}/v1/checkouts/`;
+const POLAR_TOKEN_ENV = IS_PRODUCTION
+  ? "POLAR_ACCESS_TOKEN"
+  : "POLAR_SANDBOX_TOKEN";
 
 const requestSchema = z.object({
   productId: z.string().uuid(),
@@ -70,9 +77,9 @@ Deno.serve(async (req) => {
     return json({ error: "Method not allowed" }, 405);
   }
 
-  const token = Deno.env.get("POLAR_ACCESS_TOKEN");
+  const token = Deno.env.get(POLAR_TOKEN_ENV);
   if (!token) {
-    console.error(`${LOG} missing POLAR_ACCESS_TOKEN`);
+    console.error(`${LOG} missing ${POLAR_TOKEN_ENV}`, { env: POLAR_ENV });
     return json({ error: "Server misconfigured" }, 500);
   }
 
