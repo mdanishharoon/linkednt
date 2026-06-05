@@ -22,6 +22,11 @@
 //
 // Env vars (set via `supabase secrets set`):
 //   - POLAR_ACCESS_TOKEN
+//   - POLAR_ENV: "sandbox" (default) or "production". Defaulting to sandbox
+//     means a missing/typoed env never accidentally moves real money — you
+//     have to explicitly opt in to live charges. The access token has to
+//     match the chosen env (sandbox tokens won't work against production
+//     and vice versa); Polar 401s on mismatch.
 
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 
@@ -34,7 +39,12 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const POLAR_API = "https://api.polar.sh/v1/checkouts/";
+const POLAR_ENV = (Deno.env.get("POLAR_ENV") ?? "sandbox").toLowerCase();
+const POLAR_API_BASE =
+  POLAR_ENV === "production"
+    ? "https://api.polar.sh"
+    : "https://sandbox-api.polar.sh";
+const POLAR_API = `${POLAR_API_BASE}/v1/checkouts/`;
 
 const requestSchema = z.object({
   productId: z.string().uuid(),
@@ -49,6 +59,8 @@ function json(body: unknown, status = 200): Response {
     headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
 }
+
+console.info(`${LOG} boot`, { env: POLAR_ENV, apiBase: POLAR_API_BASE });
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
