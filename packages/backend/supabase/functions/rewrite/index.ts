@@ -26,7 +26,11 @@ import { sha256Hex } from "../_shared/hash.ts";
 import { PROMPT_VERSION } from "../_shared/prompts.ts";
 import { runRewrite } from "../_shared/rewriter.ts";
 import { routeForMode } from "../_shared/routing.ts";
-import type { Mode, RewriteResponse } from "../_shared/types.ts";
+import type {
+  Mode,
+  RewriteErrorCode,
+  RewriteResponse,
+} from "../_shared/types.ts";
 import { MODE_CREDITS } from "../_shared/types.ts";
 
 // Helper-fn shorthand. SupabaseClient's default generics resolve to
@@ -67,11 +71,7 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function err(
-  code: RewriteResponse extends { ok: false; code: infer C } ? C : never,
-  error: string,
-  status: number,
-): Response {
+function err(code: RewriteErrorCode, error: string, status: number): Response {
   return json({ ok: false, code, error }, status);
 }
 
