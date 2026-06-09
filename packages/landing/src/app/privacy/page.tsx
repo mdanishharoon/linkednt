@@ -83,7 +83,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>A usage log entry per rewrite</strong> with: your user id,
-            the mode you picked (Strip / Dry Translator / Internal Monologue),
+            the mode you picked (TL;DR / Touch Grass / The Group Chat),
             the model used, response latency, the input hash, and the credit
             cost. No plaintext.
           </li>

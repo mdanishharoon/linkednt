@@ -67,7 +67,7 @@ const PACKS: Pack[] = [
     credits: 1800,
     polarProductId: PRODUCT_IDS.unemployed[POLAR_ENV],
     blurb:
-      "1,800 credits. Roughly 1,800 Strips, 900 Dry Translators, or 600 Internal Monologues. A couple months of casual feed-cleaning.",
+      "1,800 credits. Roughly 1,800 TL;DRs, 900 Touch Grass translations, or 600 Group Chats. A couple months of casual feed-cleaning.",
   },
   {
     id: "open-to-work",
@@ -161,9 +161,9 @@ export default function PricingPage() {
         </Link>
         <h1 className="pricing-title">Credits</h1>
         <p className="pricing-lede">
-          One credit ≈ one rewrite, give or take the voice you pick. Strip is 1
-          credit, Dry Translator is 2, Internal Monologue is 3 (it&rsquo;s the
-          most expensive model under the hood).
+          One credit ≈ one rewrite, give or take the voice you pick. TL;DR is 1
+          credit, Touch Grass is 2, The Group Chat is 3 (it&rsquo;s the most
+          expensive model under the hood).
         </p>
         {!userId && (
           <p className="pricing-signin">

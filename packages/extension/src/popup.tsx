@@ -1,5 +1,5 @@
 import { sendToBackground } from "@plasmohq/messaging";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useRef, useState } from "react";
 
 import { isCustomProviderId, newCustomProviderId } from "~lib/providers/custom";
 import { listAllProviders, listProviders } from "~lib/providers/registry";
@@ -31,7 +31,6 @@ type View = "onboarding" | "home" | "settings";
 
 interface ModeOption {
   value: Mode;
-  index: string;
   label: string;
   blurb: string;
 }
@@ -39,23 +38,27 @@ interface ModeOption {
 const MODE_OPTIONS: ModeOption[] = [
   {
     value: "roast",
-    index: "01",
-    label: "Internal Monologue",
-    blurb: "What the post sounds like with the performance removed.",
+    label: "The Group Chat",
+    blurb: "How this post reads when it's screenshotted into the group chat.",
   },
   {
     value: "summarise",
-    index: "02",
-    label: "Dry Translator",
-    blurb: "Plain English, with none of the inspirational packaging.",
+    label: "Touch Grass",
+    blurb: "Plain English for people who go outside.",
   },
   {
     value: "strip",
-    index: "03",
-    label: "Strip",
-    blurb: "Bare facts in one sentence. No hype, no emojis, no hashtags.",
+    label: "TL;DR",
+    blurb: "What happened, in one line. No lessons learned.",
   },
 ];
+
+// Picking a voice confirms in that voice. Deadpan, one beat, gone.
+const MODE_FLASH: Record<Mode, string> = {
+  roast: "Screenshotted.",
+  summarise: "Grass touched.",
+  strip: "Short.",
+};
 
 const BUILTIN_PROVIDERS = listProviders();
 
@@ -103,6 +106,11 @@ function Popup() {
 
   // ---- initial load ----
   useEffect(() => {
+    console.info(
+      "%cn't%c Inspecting the popup? Very “always learning” of you.",
+      "background:#0a66c2;color:#fff;padding:2px 6px;border-radius:4px;font-weight:700",
+      "color:inherit",
+    );
     void (async () => {
       const s = await getSettings();
       console.info(`${LOG} loaded`, {
@@ -314,7 +322,7 @@ function Popup() {
   async function pickMode(next: Mode) {
     setMode(next);
     await setSettings({ mode: next });
-    flash("Saved");
+    flash(MODE_FLASH[next] ?? "Saved");
   }
 
   // ---- custom provider draft handlers ----
@@ -382,9 +390,6 @@ function Popup() {
             disabled={authBusy}
             onClick={() => void handleSignIn()}
           >
-            <span className="button-icon" aria-hidden="true">
-              +
-            </span>
             {authBusy ? "Signing in…" : "Sign in for 30 free rewrites"}
           </button>
 
@@ -404,7 +409,7 @@ function Popup() {
           </button>
 
           {authError && (
-            <p className="key-status" role="alert" style={{ color: "#b3261e" }}>
+            <p className="key-status key-status-error" role="alert">
               {authError}
             </p>
           )}
@@ -459,14 +464,11 @@ function Popup() {
               disabled={authBusy}
               onClick={() => void handleSignIn()}
             >
-              <span className="button-icon" aria-hidden="true">
-                +
-              </span>
               {authBusy ? "Signing in…" : "Sign in with Google"}
             </button>
           )}
           {authError && (
-            <p className="key-status" role="alert" style={{ color: "#b3261e" }}>
+            <p className="key-status key-status-error" role="alert">
               {authError}
             </p>
           )}
@@ -483,33 +485,31 @@ function Popup() {
             </div>
           </div>
 
-          <label className="field">
-            <span>Provider</span>
-            <select
+          <div className="field">
+            <span id="provider-label">Provider</span>
+            <Dropdown
+              labelledBy="provider-label"
               value={providerId}
-              onChange={(e) => void pickProvider(e.target.value)}
-            >
-              <optgroup label="Built-in">
-                {BUILTIN_PROVIDERS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </optgroup>
-              {customProviders.length > 0 && (
-                <optgroup label="Custom">
-                  {customProviders.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-              <option value={ADD_CUSTOM_PROVIDER_VALUE}>
-                + Add custom provider…
-              </option>
-            </select>
-          </label>
+              options={[
+                ...BUILTIN_PROVIDERS.map((p) => ({
+                  value: p.id,
+                  label: p.label,
+                  group: "Built-in",
+                })),
+                ...customProviders.map((p) => ({
+                  value: p.id,
+                  label: p.label,
+                  group: "Custom",
+                })),
+                {
+                  value: ADD_CUSTOM_PROVIDER_VALUE,
+                  label: "+ Add custom provider…",
+                  action: true,
+                },
+              ]}
+              onChange={(v) => void pickProvider(v)}
+            />
+          </div>
 
           {/* Inline custom-provider draft form */}
           {editingCustom && (
@@ -569,33 +569,31 @@ function Popup() {
                 type="button"
                 onClick={() => void commitKey()}
               >
-                <span className="button-icon" aria-hidden="true">
-                  +
-                </span>
                 Save key
               </button>
 
-              <label className="field" style={{ marginTop: 10 }}>
-                <span>Model</span>
-                <select
+              <div className="field">
+                <span id="model-label">Model</span>
+                <Dropdown
+                  labelledBy="model-label"
                   value={
                     provider?.modelSuggestions.includes(modelInput)
                       ? modelInput
                       : CUSTOM_MODEL_VALUE
                   }
-                  onChange={(e) => void pickModelSelect(e.target.value)}
-                >
-                  {provider?.modelSuggestions.map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                  <option value={CUSTOM_MODEL_VALUE}>Custom model…</option>
-                </select>
-              </label>
+                  options={[
+                    ...(provider?.modelSuggestions ?? []).map((m) => ({
+                      value: m,
+                      label: m,
+                    })),
+                    { value: CUSTOM_MODEL_VALUE, label: "Custom model…" },
+                  ]}
+                  onChange={(v) => void pickModelSelect(v)}
+                />
+              </div>
 
               {!provider?.modelSuggestions.includes(modelInput) && (
-                <label className="field" style={{ marginTop: 6 }}>
+                <label className="field">
                   <span>Custom model ID</span>
                   <input
                     type="text"
@@ -665,6 +663,9 @@ function Popup() {
           n<span className="apos">&rsquo;</span>t
         </div>
         <span className="topbar-title">linkedn&rsquo;t</span>
+        <span className="save-state" aria-live="polite">
+          {flashText}
+        </span>
         <button
           className="iconbtn"
           type="button"
@@ -676,12 +677,19 @@ function Popup() {
       </header>
 
       {/* Credits / status hero */}
-      <section className="credits-hero" aria-labelledby="credits-title">
+      <section className="credits-hero" aria-label="Account status">
         {showProxyHero && isSignedIn && status && (
           <CreditsBlock status={status} userId={user?.id ?? null} />
         )}
         {showProxyHero && isSignedIn && !status && (
-          <p className="credits-loading">Loading credits…</p>
+          <div
+            className="credits-skeleton"
+            role="status"
+            aria-label="Loading credits"
+          >
+            <span className="skeleton skeleton-number" />
+            <span className="skeleton skeleton-line" />
+          </div>
         )}
         {showProxyHero && !isSignedIn && (
           <div className="credits-cta">
@@ -692,32 +700,59 @@ function Popup() {
               disabled={authBusy}
               onClick={() => void handleSignIn()}
             >
-              <span className="button-icon" aria-hidden="true">
-                +
-              </span>
               {authBusy ? "Signing in…" : "Sign in with Google"}
             </button>
             {authError && (
-              <p
-                className="key-status"
-                role="alert"
-                style={{ color: "#b3261e", marginTop: 8 }}
-              >
+              <p className="key-status key-status-error" role="alert">
                 {authError}
               </p>
             )}
           </div>
         )}
         {!showProxyHero && (
-          <div className="credits-cta">
-            <h2 id="credits-title">Using your own key</h2>
-            <p className="byok-hero-meta">
-              {provider?.label}
-              {modelInput ? ` · ${modelInput}` : ""}
-            </p>
-            <p className="byok-hero-meta byok-hero-status">
-              {savedKey ? "Key on file" : "No key saved — open settings"}
-            </p>
+          <div className={`byok-hero${savedKey ? " has-key" : ""}`}>
+            <svg className="byok-key" viewBox="0 0 24 24" aria-hidden="true">
+              <circle
+                cx="7.5"
+                cy="12"
+                r="3.25"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              />
+              <path
+                d="M10.75 12H20M16.5 12v3.2M20 12v2.4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            </svg>
+            <p className="byok-provider">{provider?.label}</p>
+            {modelInput && <p className="byok-model">{modelInput}</p>}
+            {savedKey ? (
+              <span className="byok-chip">
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path
+                    d="M3 8.5l3.2 3.2L13 5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Key on file
+              </span>
+            ) : (
+              <button
+                className="byok-add"
+                type="button"
+                onClick={() => setView("settings")}
+              >
+                Add a key →
+              </button>
+            )}
           </div>
         )}
       </section>
@@ -732,12 +767,12 @@ function Popup() {
         </div>
 
         <div
-          className="mode-grid"
+          className="mode-list"
           role="radiogroup"
           aria-label="Translation mode"
         >
           {MODE_OPTIONS.map((opt) => (
-            <label key={opt.value} className="mode-card">
+            <label key={opt.value} className="mode-row">
               <input
                 type="radio"
                 name="mode"
@@ -745,13 +780,32 @@ function Popup() {
                 checked={mode === opt.value}
                 onChange={() => void pickMode(opt.value)}
               />
-              <span className="mode-index" aria-hidden="true">
-                {opt.index}
+              <span
+                className={`mode-viz mode-viz-${opt.value}`}
+                aria-hidden="true"
+              >
+                <i />
+                <i />
+                <i />
               </span>
               <span className="mode-copy">
                 <strong>{opt.label}</strong>
                 <small>{opt.blurb}</small>
               </span>
+              <svg
+                className="mode-check"
+                viewBox="0 0 16 16"
+                aria-hidden="true"
+              >
+                <path
+                  d="M3 8.5l3.2 3.2L13 5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </label>
           ))}
         </div>
@@ -760,6 +814,10 @@ function Popup() {
       {/* Path toggle (kept on Home for quick switching) */}
       <section className="panel compact-panel" aria-label="Rewrite path">
         <div className="segmented" role="tablist">
+          <span
+            className={`segmented-thumb${path === "byok" ? " at-2" : ""}`}
+            aria-hidden="true"
+          />
           <button
             type="button"
             role="tab"
@@ -794,6 +852,185 @@ function Popup() {
 // Sub-components
 // ============================================================
 
+interface DropdownOption {
+  value: string;
+  label: string;
+  group?: string;
+  action?: boolean;
+}
+
+/** Custom select: button trigger + popover listbox, replacing the native
+ *  <select> menu. Keyboard: arrows / Home / End / Enter / Esc. Flips upward
+ *  when there isn't room below (the popup window can't grow for overlays). */
+function Dropdown({
+  value,
+  options,
+  onChange,
+  labelledBy,
+}: {
+  value: string;
+  options: DropdownOption[];
+  onChange: (value: string) => void;
+  labelledBy: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
+  const [hl, setHl] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const id = useId();
+
+  const selectedIndex = options.findIndex((o) => o.value === value);
+  const selected = options[selectedIndex];
+
+  function openMenu() {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    setOpenUp(
+      !!rect && window.innerHeight - rect.bottom < 190 && rect.top > 190,
+    );
+    setHl(selectedIndex >= 0 ? selectedIndex : 0);
+    setOpen(true);
+  }
+
+  function close(focusTrigger = false) {
+    setOpen(false);
+    if (focusTrigger) triggerRef.current?.focus();
+  }
+
+  function commit(index: number) {
+    const opt = options[index];
+    if (!opt) return;
+    close(true);
+    onChange(opt.value);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    menuRef.current?.focus();
+    const onPointerDown = (e: PointerEvent) => {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    document
+      .getElementById(`${id}-opt-${hl}`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [open, hl, id]);
+
+  function onMenuKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHl((i) => Math.min(i + 1, options.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHl((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setHl(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setHl(options.length - 1);
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      commit(hl);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      close(true);
+    } else if (e.key === "Tab") {
+      setOpen(false);
+    }
+  }
+
+  function onTriggerKeyDown(e: React.KeyboardEvent) {
+    if (
+      e.key === "ArrowDown" ||
+      e.key === "ArrowUp" ||
+      e.key === "Enter" ||
+      e.key === " "
+    ) {
+      e.preventDefault();
+      openMenu();
+    }
+  }
+
+  let lastGroup: string | undefined;
+
+  return (
+    <div className="dd" ref={rootRef}>
+      <button
+        type="button"
+        ref={triggerRef}
+        className="dd-trigger"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-labelledby={labelledBy}
+        onClick={() => (open ? close() : openMenu())}
+        onKeyDown={onTriggerKeyDown}
+      >
+        <span className="dd-value">{selected?.label ?? ""}</span>
+      </button>
+      {open && (
+        <div
+          ref={menuRef}
+          className={`dd-menu${openUp ? " dd-menu-up" : ""}`}
+          role="listbox"
+          tabIndex={-1}
+          aria-labelledby={labelledBy}
+          aria-activedescendant={`${id}-opt-${hl}`}
+          onKeyDown={onMenuKeyDown}
+          onBlur={(e) => {
+            if (!rootRef.current?.contains(e.relatedTarget as Node)) {
+              setOpen(false);
+            }
+          }}
+        >
+          {options.map((opt, i) => {
+            const header =
+              opt.group && opt.group !== lastGroup ? opt.group : null;
+            lastGroup = opt.group;
+            return (
+              <Fragment key={opt.value}>
+                {header && <div className="dd-group">{header}</div>}
+                <div
+                  id={`${id}-opt-${i}`}
+                  role="option"
+                  aria-selected={opt.value === value}
+                  className={`dd-option${i === hl ? " is-hl" : ""}${opt.action ? " is-action" : ""}`}
+                  onMouseEnter={() => setHl(i)}
+                  onClick={() => commit(i)}
+                >
+                  <span className="dd-option-label">{opt.label}</span>
+                  {opt.value === value && (
+                    <svg
+                      className="dd-option-check"
+                      viewBox="0 0 16 16"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M3 8.5l3.2 3.2L13 5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </Fragment>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CreditsBlock({
   status,
   userId,
@@ -822,7 +1059,7 @@ function CreditsBlock({
             ? `free rewrites left of 30`
             : paid > 0
               ? `paid rewrites left`
-              : "Out of credits"}
+              : "Humbled to announce: out of credits."}
       </div>
       <a
         href={pricingUrl}
