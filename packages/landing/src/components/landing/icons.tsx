@@ -152,13 +152,31 @@ export const Ico = {
   ),
 };
 
-export function Avatar({ variant = "" }: { variant?: string }) {
+export function Avatar({
+  variant = "",
+  src,
+  invert = false,
+}: {
+  variant?: string;
+  src?: string;
+  invert?: boolean;
+}) {
   return (
     <div className={"avatar " + variant}>
-      <svg viewBox="0 0 40 40" fill="#fff">
-        <circle cx="20" cy="15" r="7.5" />
-        <path d="M5 40c1.5-9 8-13 15-13s13.5 4 15 13z" />
-      </svg>
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          className={invert ? "invert" : undefined}
+        />
+      ) : (
+        <svg viewBox="0 0 40 40" fill="#fff">
+          <circle cx="20" cy="15" r="7.5" />
+          <path d="M5 40c1.5-9 8-13 15-13s13.5 4 15 13z" />
+        </svg>
+      )}
     </div>
   );
 }

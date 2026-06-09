@@ -1,10 +1,11 @@
 "use client";
 
-// FeedPost.tsx — the interactive feed card. Click to toggle slop ⇄ honest;
-// also follows the global Honesty mode.
-import { useContext, useState, type ReactNode } from "react";
-import { HonestyContext } from "./honesty";
+// FeedPost.tsx — a LinkedIn post card with the extension's real affordance:
+// a Deslop action in the action bar that renders the translation card in
+// place, and a Show original pill inside the card to flip back.
+import { useState, type ReactNode } from "react";
 import { Avatar, Ico } from "./icons";
+import { TranslationCard } from "./TranslationCard";
 
 export function FeedPost({
   name,
@@ -14,7 +15,8 @@ export function FeedPost({
   slop,
   honest,
   variant = "",
-  interactive = true,
+  avatar,
+  avatarInvert = false,
   follow = true,
 }: {
   name: string;
@@ -24,26 +26,16 @@ export function FeedPost({
   slop: ReactNode;
   honest: ReactNode;
   variant?: string;
-  interactive?: boolean;
+  avatar?: string;
+  avatarInvert?: boolean;
   follow?: boolean;
 }) {
-  const { honest: globalHonest } = useContext(HonestyContext);
-  const [open, setOpen] = useState(globalHonest);
-  // Sync to the global Honesty switch when it flips, while still allowing a
-  // local per-post toggle in between (React's "adjust state during render").
-  const [lastGlobal, setLastGlobal] = useState(globalHonest);
-  if (globalHonest !== lastGlobal) {
-    setLastGlobal(globalHonest);
-    setOpen(globalHonest);
-  }
+  const [open, setOpen] = useState(false);
 
   return (
-    <div
-      className={"post" + (interactive ? " interactive" : "")}
-      onClick={interactive ? () => setOpen((o) => !o) : undefined}
-    >
+    <div className="post">
       <div className="post-head">
-        <Avatar variant={variant} />
+        <Avatar variant={variant} src={avatar} invert={avatarInvert} />
         <div style={{ minWidth: 0 }}>
           <div className="post-name">
             {name} <span className="deg">· {degree}</span>
@@ -79,34 +71,19 @@ export function FeedPost({
         >
           <div>
             <div
-              className="inner honest-wrap"
+              className="inner"
               style={{
                 opacity: open ? 1 : 0,
                 transform: open ? "none" : "translateY(5px)",
               }}
             >
-              <div className="tchip">
-                translated by linkedn&rsquo;t <span className="ln" />
-              </div>
-              <div className="honest-text">{honest}</div>
+              <TranslationCard onShowOriginal={() => setOpen(false)}>
+                {honest}
+              </TranslationCard>
             </div>
           </div>
         </div>
       </div>
-
-      {interactive && (
-        <div className="post-hint">
-          {open ? (
-            <>
-              <Ico.check /> Honest — click to undo
-            </>
-          ) : (
-            <>
-              <Ico.down /> Click to see what they meant
-            </>
-          )}
-        </div>
-      )}
 
       <div className="post-actions">
         <span className="pa">
@@ -118,6 +95,16 @@ export function FeedPost({
         <span className="pa">
           <Ico.repost /> Repost
         </span>
+        <button
+          className={"pa pa-deslop" + (open ? " on" : "")}
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+        >
+          <span className="deslop-chip" aria-hidden="true">
+            +
+          </span>
+          Deslop
+        </button>
       </div>
     </div>
   );

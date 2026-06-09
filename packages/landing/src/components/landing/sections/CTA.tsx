@@ -1,27 +1,45 @@
+"use client";
+
+// CTA.tsx — the install banner. Easter egg: the giant ghost phrases can be
+// clicked dead, the way the product kills them. Kill both and the page
+// acknowledges your service.
+import { useState } from "react";
 import { Ico } from "../icons";
 
 export function CTA() {
+  const [dead, setDead] = useState<Record<string, boolean>>({});
+  const kill = (k: string) => setDead((d) => ({ ...d, [k]: true }));
+  const allDead = dead.a && dead.b;
+
   return (
     <section className="section-tight" id="install">
       <div className="container">
         <div className="cta reveal">
-          <div
-            className="cta-deco"
+          <button
+            type="button"
+            className={"cta-deco" + (dead.a ? " dead" : "")}
             style={{ top: 18, left: -10, fontSize: 70 }}
+            onClick={() => kill("a")}
+            tabIndex={-1}
+            aria-hidden="true"
           >
             thrilled to announce
-          </div>
-          <div
-            className="cta-deco"
+          </button>
+          <button
+            type="button"
+            className={"cta-deco" + (dead.b ? " dead" : "")}
             style={{ bottom: 10, right: -20, fontSize: 70 }}
+            onClick={() => kill("b")}
+            tabIndex={-1}
+            aria-hidden="true"
           >
             humbled &amp; honored
-          </div>
+          </button>
           <span
             className="eyebrow"
             style={{ color: "rgba(255,255,255,.85)", position: "relative" }}
           >
-            <Ico.check /> Free forever
+            <Ico.check /> 30 free rewrites
           </span>
           <h2 className="h2" style={{ marginTop: 16, position: "relative" }}>
             Stop reading
@@ -47,7 +65,9 @@ export function CTA() {
               position: "relative",
             }}
           >
-            No account · Works offline · 4.9&#9733; from 2,180 reviews
+            {allDead
+              ? "Feels good, doesn’t it?"
+              : "30 free rewrites · No subscription · Bring your own key if you’d rather"}
           </div>
         </div>
       </div>

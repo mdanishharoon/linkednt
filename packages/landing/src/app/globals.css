@@ -242,47 +242,6 @@ a {
   gap: 18px;
 }
 
-/* ── honesty switch ── */
-.hswitch {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  user-select: none;
-}
-.hswitch .lbl {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ink-2);
-  letter-spacing: -0.01em;
-}
-.track {
-  width: 46px;
-  height: 26px;
-  border-radius: 999px;
-  background: #c9cfd4;
-  position: relative;
-  transition: background 0.22s;
-  flex: 0 0 auto;
-}
-.track.on {
-  background: var(--blue);
-}
-.knob {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.5, 1);
-}
-.track.on .knob {
-  transform: translateX(20px);
-}
-
 /* ── feed post ── */
 .post {
   background: #fff;
@@ -328,6 +287,16 @@ a {
   width: 74%;
   height: 74%;
   opacity: 0.62;
+}
+.avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar img.invert {
+  filter: invert(1);
 }
 .avatar.b {
   background: radial-gradient(
@@ -407,33 +376,67 @@ a {
   font-size: 15px;
   line-height: 1.5;
   color: var(--ink-2);
+  white-space: pre-line;
 }
-.honest-wrap {
-  padding-top: 2px;
+/* the extension's in-page translation card, reproduced faithfully from
+   contents/linkedin.css (.lo-card) */
+.tr-card {
+  border: 1px solid #e1e4e8;
+  border-radius: 10px;
+  background: #fff;
+  padding: 13px 14px 10px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 6px 16px rgba(0, 0, 0, 0.05);
 }
-.tchip {
-  display: inline-flex;
+.tr-kicker {
+  margin: 0 0 6px;
+  color: #0a66c2;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.tr-body {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.88);
+}
+.tr-foot {
+  display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 9px;
+  border-top: 1px solid #f0f1f3;
+}
+.tr-show {
+  min-height: 26px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(10, 102, 194, 0.08);
+  color: #0a66c2;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  transition:
+    background 0.16s ease,
+    transform 0.16s ease;
+}
+.tr-show:hover {
+  background: rgba(10, 102, 194, 0.16);
+}
+.tr-show:active {
+  transform: scale(0.98);
+}
+.tr-mark {
+  color: rgba(0, 0, 0, 0.3);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--blue);
-  margin-bottom: 9px;
-}
-.tchip .ln {
-  height: 1px;
-  width: 26px;
-  background: var(--blue);
-  opacity: 0.4;
-}
-.honest-text {
-  font-size: 19px;
-  line-height: 1.42;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  color: var(--ink);
+  font-weight: 600;
 }
 .post-actions {
   display: flex;
@@ -461,32 +464,30 @@ a {
   background: var(--feed);
   color: var(--ink-2);
 }
-.post-hint {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin-top: 10px;
-  font-size: 12.5px;
+/* the Deslop action, matching the extension's button in the post bar */
+.pa-deslop {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13.5px;
   font-weight: 600;
-  color: var(--blue);
-  opacity: 0.9;
 }
-
-/* tiny translate badge that rides the corner */
-.tbadge {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: #fff;
-  border: 1px solid var(--line);
+.pa-deslop .deslop-chip {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
   border-radius: 999px;
-  padding: 7px 13px 7px 9px;
-  box-shadow: var(--shadow-md);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
+  background: #eef3f8;
+  color: #0a66c2;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+.pa-deslop:hover,
+.pa-deslop.on {
+  color: #0a66c2;
 }
 
 /* ── marquee ── */
@@ -517,9 +518,24 @@ a {
   letter-spacing: -0.01em;
 }
 .mq-item .word {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
   color: rgba(255, 255, 255, 0.4);
   text-decoration: line-through;
   text-decoration-color: rgba(255, 255, 255, 0.32);
+  transition: color 0.18s;
+}
+.mq-item .word:hover {
+  color: rgba(255, 255, 255, 0.62);
+}
+/* clicked: the buzzword confesses */
+.mq-item .word.truth {
+  color: #fff;
+  text-decoration: none;
+  font-style: italic;
 }
 .mq-item .dot {
   width: 5px;
@@ -595,31 +611,6 @@ a {
 }
 .bw-pin {
   position: relative;
-  cursor: pointer;
-}
-.bw-pin .ring {
-  position: absolute;
-  inset: -6px;
-  border-radius: 11px;
-  box-shadow: 0 0 0 2px var(--blue);
-  opacity: 0;
-  animation: pin 3.4s ease-in-out infinite;
-}
-@keyframes pin {
-  0%,
-  72%,
-  100% {
-    opacity: 0;
-    transform: scale(1);
-  }
-  80% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-  92% {
-    opacity: 0;
-    transform: scale(1.18);
-  }
 }
 .bw-body {
   position: relative;
@@ -696,49 +687,225 @@ a {
   gap: 10px;
   padding: 14px 15px;
 }
-.bw-pop-top .st {
+.pop-credits {
   margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--green);
-  background: rgba(10, 124, 66, 0.1);
-  padding: 3px 8px;
+  color: #0a66c2;
+  background: rgba(10, 102, 194, 0.08);
+  padding: 3px 9px;
   border-radius: 999px;
+  font-variant-numeric: tabular-nums;
 }
-.bw-pop-tog {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 15px;
+/* the popup's voice picker, mirrored from the extension's mode list */
+.pop-voices {
   border-top: 1px solid var(--line-2);
-  border-bottom: 1px solid var(--line-2);
-  cursor: pointer;
-  user-select: none;
+  padding-bottom: 4px;
 }
-.bw-pop-tog .tg-lbl {
-  font-size: 14.5px;
+.pop-vhead {
+  padding: 12px 15px 0;
+  font-size: 14px;
   font-weight: 700;
   color: var(--ink);
 }
-.bw-pop-tog .tg-sub {
+.pop-vsub {
+  padding: 2px 15px 9px;
   font-size: 11.5px;
   color: var(--muted-2);
-  margin-top: 1px;
 }
-.bw-pop-stat {
-  padding: 12px 15px;
+.voice-row {
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-size: 12.5px;
-  color: var(--muted);
+  gap: 10px;
+  width: 100%;
+  padding: 9px 15px;
+  border: 0;
+  border-top: 1px solid var(--line-2);
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: background 0.14s;
 }
-.bw-pop-stat b {
+.voice-row:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+.voice-copy {
+  flex: 1;
+  min-width: 0;
+}
+.voice-copy strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--ink);
-  font-variant-numeric: tabular-nums;
+}
+.voice-copy small {
+  display: block;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.voice-check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: #0a66c2;
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+/* the check draws itself in, as in the extension popup */
+.voice-check path {
+  stroke-dasharray: 15;
+  stroke-dashoffset: 15;
+  transition: stroke-dashoffset 220ms cubic-bezier(0.16, 1, 0.3, 1) 40ms;
+}
+.voice-row.on .voice-check {
+  opacity: 1;
+  transform: none;
+}
+.voice-row.on .voice-check path {
+  stroke-dashoffset: 0;
+}
+
+/* the popup's mini-demos, ported: each voice's diagram shows what it does
+   to a post. Idle = gray "before"; selected = the transformation plays. */
+.voice-viz {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 28px;
+}
+.voice-viz i {
+  position: absolute;
+  left: 4px;
+  height: 3px;
+  border-radius: 999px;
+  background: #dde8f0;
+  transition:
+    width 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    left 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    top 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+/* The Group Chat: post lines get captured into a sent chat bubble */
+.viz-roast::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 4px;
+  width: 24px;
+  height: 18px;
+  border-radius: 7px 7px 7px 2px;
+  background: #0a66c2;
+  opacity: 0;
+  transform: scale(0.7);
+  transform-origin: left bottom;
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.viz-roast i:nth-child(1) {
+  top: 8px;
+  width: 18px;
+}
+.viz-roast i:nth-child(2) {
+  top: 15px;
+  width: 12px;
+}
+.viz-roast i:nth-child(3) {
+  display: none;
+}
+.voice-row.on .viz-roast::before {
+  opacity: 1;
+  transform: scale(1);
+}
+.voice-row.on .viz-roast i {
+  background: rgba(255, 255, 255, 0.92);
+}
+.voice-row.on .viz-roast i:nth-child(1) {
+  top: 9px;
+  left: 6px;
+  width: 14px;
+}
+.voice-row.on .viz-roast i:nth-child(2) {
+  top: 14px;
+  left: 6px;
+  width: 9px;
+}
+/* Touch Grass: jumbled, tilted lines comb themselves flat */
+.viz-summarise i:nth-child(1) {
+  top: 6px;
+  width: 16px;
+  transform: rotate(-12deg) translateX(2px);
+}
+.viz-summarise i:nth-child(2) {
+  top: 13px;
+  width: 18px;
+  transform: rotate(8deg);
+}
+.viz-summarise i:nth-child(3) {
+  top: 20px;
+  width: 13px;
+  transform: rotate(-5deg) translateX(3px);
+}
+.voice-row.on .viz-summarise i {
+  background: #0a66c2;
+  transform: none;
+}
+.voice-row.on .viz-summarise i:nth-child(1) {
+  width: 18px;
+}
+.voice-row.on .viz-summarise i:nth-child(2) {
+  width: 18px;
+  opacity: 0.45;
+  transition-delay: 50ms;
+}
+.voice-row.on .viz-summarise i:nth-child(3) {
+  width: 12px;
+  opacity: 0.7;
+  transition-delay: 100ms;
+}
+/* TL;DR: three post lines collapse into one short line */
+.viz-strip i:nth-child(1) {
+  top: 6px;
+  width: 20px;
+}
+.viz-strip i:nth-child(2) {
+  top: 13px;
+  width: 14px;
+}
+.viz-strip i:nth-child(3) {
+  top: 20px;
+  width: 17px;
+}
+.voice-row.on .viz-strip i:nth-child(1) {
+  width: 10px;
+  background: #0a66c2;
+  transition-delay: 80ms;
+}
+.voice-row.on .viz-strip i:nth-child(2) {
+  opacity: 0;
+  transform: translateY(-7px);
+}
+.voice-row.on .viz-strip i:nth-child(3) {
+  opacity: 0;
+  transform: translateY(-14px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-viz i,
+  .viz-roast::before,
+  .voice-check,
+  .voice-check path {
+    transition: none;
+  }
 }
 .bw-caption {
   display: flex;
@@ -772,123 +939,6 @@ a {
   .bw-tools .bw-tool {
     display: none;
   }
-}
-
-/* ── gallery: swipeable card deck ── */
-.deck-wrap {
-  margin-top: 48px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.deck {
-  position: relative;
-  width: 100%;
-  max-width: 496px;
-  height: 312px;
-  touch-action: pan-y;
-  user-select: none;
-}
-.deck-card {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 288px;
-  pointer-events: none;
-  transition:
-    transform 0.44s cubic-bezier(0.2, 0.7, 0.3, 1),
-    opacity 0.44s;
-  will-change: transform;
-}
-.deck-card.front {
-  pointer-events: auto;
-  cursor: grab;
-}
-.deck-card.front:active {
-  cursor: grabbing;
-}
-.deck-card .post {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  box-shadow:
-    0 4px 14px rgba(20, 25, 30, 0.07),
-    0 30px 60px -30px rgba(20, 25, 30, 0.4);
-}
-.deck-card .post-body {
-  flex: 1;
-  margin-top: 13px;
-}
-.deck-card .slop-text {
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.deck-ctrl {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  margin-top: 30px;
-}
-.deck-dots {
-  display: flex;
-  gap: 7px;
-}
-.deck-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 4px;
-  background: var(--line);
-  transition:
-    width 0.25s,
-    background 0.25s;
-  cursor: pointer;
-  padding: 0;
-  border: 0;
-}
-.deck-dot.on {
-  background: var(--blue);
-  width: 22px;
-}
-.deck-arrow {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line);
-  background: #fff;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink-2);
-  transition:
-    border-color 0.14s,
-    color 0.14s,
-    transform 0.14s;
-}
-.deck-arrow:hover {
-  border-color: var(--ink);
-  color: var(--ink);
-  transform: translateY(-1px);
-}
-.deck-hint {
-  margin-top: 16px;
-  font-size: 13px;
-  color: var(--muted-2);
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  font-weight: 500;
-}
-.deck-count {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink-2);
-  font-variant-numeric: tabular-nums;
-  min-width: 42px;
-  text-align: center;
 }
 
 /* ── phrasebook ── */
@@ -1010,10 +1060,37 @@ a {
 .cta-deco {
   position: absolute;
   font-weight: 800;
+  font-family: inherit;
   color: rgba(255, 255, 255, 0.07);
   white-space: nowrap;
   letter-spacing: -0.04em;
-  pointer-events: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  transition:
+    color 0.2s,
+    opacity 0.5s,
+    transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.cta-deco:hover {
+  color: rgba(255, 255, 255, 0.12);
+}
+/* clicked dead, the way the product kills them: the strike has to be
+   brighter than the ghost text or the payoff is invisible */
+.cta-deco.dead {
+  color: rgba(255, 255, 255, 0.16);
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.45);
+  text-decoration-thickness: 3px;
+  transform: translateY(10px) rotate(-2deg);
+  cursor: default;
+}
+
+.footer-disclaimer {
+  cursor: pointer;
+  user-select: none;
 }
 
 /* ── footer ── */
@@ -1126,12 +1203,68 @@ a {
   width: 100%;
   max-width: 430px;
 }
-.hero-stack .bg-card {
+/* hero card deck: auto-cycles every 6s, draggable both directions */
+.hero-deck {
+  position: relative;
+  /* tall enough for the two-paragraph thought-slop post at 7 clamped lines */
+  height: 344px;
+  touch-action: pan-y;
+  user-select: none;
+}
+.hero-card {
   position: absolute;
-  inset: 0;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100%;
+  pointer-events: none;
+  transition:
+    transform 0.44s cubic-bezier(0.2, 0.7, 0.3, 1),
+    opacity 0.44s;
+  will-change: transform;
+}
+.hero-card.front {
+  pointer-events: auto;
+  cursor: grab;
+}
+.hero-card.front:active {
+  cursor: grabbing;
+}
+.hero-card .post {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.hero-card .post-body {
+  flex: 1;
+}
+.hero-card .slop-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 7;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hero-dots {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 16px;
+}
+.hero-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--line);
+  transition:
+    width 0.25s,
+    background 0.25s;
+  cursor: pointer;
+  padding: 0;
+  border: 0;
+}
+.hero-dot.on {
+  background: var(--blue);
+  width: 22px;
 }
 
 @media (max-width: 920px) {
@@ -1143,10 +1276,8 @@ a {
     margin: 0 auto;
     max-width: 460px;
   }
-  .deck {
-    max-width: none;
-  }
-  .bw-feed .post .post-actions {
+  /* keep the Deslop button — it's the demo's interaction — hide the rest */
+  .bw-feed .post .pa:not(.pa-deslop) {
     display: none;
   }
   .footer-grid {
@@ -1334,30 +1465,49 @@ a {
   color: var(--muted);
   margin: 0 0 22px;
 }
+/* same treatment as the landing .btn-blue, full-width */
 .pack-buy {
   display: block;
   width: 100%;
   text-align: center;
   font-family: inherit;
-  font-size: 14.5px;
-  font-weight: 800;
-  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  padding: 11px 14px;
   border-radius: 10px;
   background: var(--blue);
   color: #fff;
-  border: 0;
+  border: 1.5px solid transparent;
   cursor: pointer;
   text-decoration: none;
-  transition: background 0.14s;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 1px 1px rgba(36, 79, 149, 0.5),
+    0 4px 10px -4px rgba(45, 100, 188, 0.55);
+  transition:
+    transform 0.14s cubic-bezier(0.2, 0.7, 0.3, 1),
+    box-shadow 0.16s,
+    background 0.14s;
 }
 .pack-buy:hover {
   background: var(--blue-700);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 2px 2px rgba(36, 79, 149, 0.4),
+    0 12px 22px -8px rgba(45, 100, 188, 0.6);
+}
+.pack-buy:active {
+  transform: translateY(0);
 }
 .pack-buy.is-disabled {
   background: var(--feed);
   color: var(--muted-2);
   cursor: not-allowed;
   border: 1px solid var(--line);
+  box-shadow: none;
+  transform: none;
 }
 
 .pricing-foot {
