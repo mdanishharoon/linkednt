@@ -39,12 +39,28 @@ export function showContainer(container: HTMLElement): void {
   container.style.removeProperty("display");
 }
 
+// Shown while the rewrite is in flight; one is picked at random per deslop.
+// Static strings only — they're interpolated into innerHTML below.
+const LOADING_LINES = [
+  "linkednt is reading between the line breaks",
+  "linkednt is removing the journey from this post",
+  "linkednt is counting the 🙏s",
+  "linkednt is locating the actual news",
+  "linkednt is unpacking “humbled”",
+  "linkednt is translating this from Corporate",
+  "linkednt is finding the sentence that matters",
+  "linkednt is asking the post to calm down",
+  "linkednt is separating the story from the performance",
+];
+
 export function createLoadingCard(ctx: CardContext): HTMLElement {
   const card = makeCard("loading", ctx);
   const inner = card.querySelector<HTMLElement>(".lo-card-inner")!;
+  const line =
+    LOADING_LINES[Math.floor(Math.random() * LOADING_LINES.length)];
   inner.innerHTML = `
     <div class="lo-scan" aria-hidden="true"></div>
-    <p class="lo-kicker">linkednt is reading between the line breaks</p>
+    <p class="lo-kicker">${line}</p>
     <div class="lo-skeleton"></div>
     <div class="lo-skeleton short"></div>
   `;

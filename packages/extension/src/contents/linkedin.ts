@@ -536,14 +536,20 @@ async function deslopPost(post: HTMLElement, button: HTMLButtonElement) {
     }
   } catch (err) {
     stats.rewriteErrors += 1;
-    const message =
-      err instanceof Error ? err.message : "Couldn't deslop this one.";
-    stats.lastError = message;
+    stats.lastError = err instanceof Error ? err.message : String(err);
     error("rewrite threw", err);
-    const errCard = createErrorCard(message, ctx, undefined, () => {
-      errCard.remove();
-      void deslopPost(post, button);
-    });
+    // The absolute last-resort path: not a known error code, something just
+    // blew up. The real exception is in the console above; the card stays
+    // in character.
+    const errCard = createErrorCard(
+      "Even linkedn’t tapped out on this bs. Whatever happened is in the console logs.",
+      ctx,
+      "UNEXPECTED",
+      () => {
+        errCard.remove();
+        void deslopPost(post, button);
+      },
+    );
     loadingCard.replaceWith(errCard);
   } finally {
     button.disabled = false;
