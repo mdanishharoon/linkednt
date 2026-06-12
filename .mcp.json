@@ -7,10 +7,6 @@
     "supabase-sandbox": {
       "type": "http",
       "url": "https://mcp.supabase.com/mcp?project_ref=sihdgzbbdlpzrgsfjfqw"
-    },
-    "polar-sandbox": {
-      "command": "npx",
-      "args": ["-y", "mcp-remote", "https://mcp.polar.sh/mcp/polar-sandbox"]
     }
   }
 }
