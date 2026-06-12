@@ -29,34 +29,24 @@ interface Pack {
   blurb: string;
 }
 
-// Polar has separate product UUIDs per environment — sandbox products
-// don't exist in production and vice versa. We keep both sets here and
-// pick at build time so a single deploy can target either env just by
-// flipping NEXT_PUBLIC_POLAR_ENV. Must match POLAR_ENV on the edge
-// function (the checkout call routes to whichever Polar API the function
-// is pointing at).
+// Polar product UUIDs are environment-specific (a sandbox product doesn't
+// exist in production and vice versa), so they're injected via build-time
+// env vars rather than hardcoded — set the sandbox UUIDs on a sandbox
+// deploy (or .env.local) and the live UUIDs in the production CI variables.
+// Whichever set you supply must point at the same Polar env as POLAR_ENV on
+// the create-polar-checkout edge function, since the checkout call routes to
+// whichever Polar API that function targets.
 //
-// Default is sandbox so a missing/typoed build env never accidentally
-// ships live product IDs into a test deploy.
-const POLAR_ENV =
-  process.env.NEXT_PUBLIC_POLAR_ENV === "production" ? "production" : "sandbox";
-
+// A missing var leaves the id as "" — the Buy button then renders
+// "Coming soon" (see `available` below) instead of creating a broken
+// checkout, so a half-configured deploy degrades gracefully.
 const PRODUCT_IDS: Record<
   "unemployed" | "open-to-work" | "thought-leader",
-  { sandbox: string; production: string }
+  string
 > = {
-  unemployed: {
-    sandbox: "a8b42d95-e5c6-4243-8ab6-45ee4081f2a6",
-    production: "e3780aaa-6f49-4923-8b99-772da323eeab",
-  },
-  "open-to-work": {
-    sandbox: "d7abae35-b862-46f3-bbf9-22c87d664f0f",
-    production: "efa662f9-70c8-4d8b-9976-1b0df7f7a1db",
-  },
-  "thought-leader": {
-    sandbox: "dbe09667-61de-4f90-b599-74fc11809a9b",
-    production: "4032d550-a0ee-475b-9c09-dbb7a542243b",
-  },
+  unemployed: process.env.NEXT_PUBLIC_POLAR_PRODUCT_UNEMPLOYED ?? "",
+  "open-to-work": process.env.NEXT_PUBLIC_POLAR_PRODUCT_OPEN_TO_WORK ?? "",
+  "thought-leader": process.env.NEXT_PUBLIC_POLAR_PRODUCT_THOUGHT_LEADER ?? "",
 };
 
 const PACKS: Pack[] = [
@@ -65,7 +55,7 @@ const PACKS: Pack[] = [
     label: "Unemployed",
     priceUsd: 4,
     credits: 1800,
-    polarProductId: PRODUCT_IDS.unemployed[POLAR_ENV],
+    polarProductId: PRODUCT_IDS.unemployed,
     blurb:
       "1,800 credits. Roughly 1,800 TL;DRs, 900 Touch Grass translations, or 600 Group Chats. A couple months of casual feed-cleaning.",
   },
@@ -74,7 +64,7 @@ const PACKS: Pack[] = [
     label: "Open to Work",
     priceUsd: 6,
     credits: 3000,
-    polarProductId: PRODUCT_IDS["open-to-work"][POLAR_ENV],
+    polarProductId: PRODUCT_IDS["open-to-work"],
     blurb:
       "3,000 credits. For the person who has a lot of thoughts about other people's journeys.",
   },
@@ -83,7 +73,7 @@ const PACKS: Pack[] = [
     label: "Thought Leader",
     priceUsd: 9,
     credits: 5000,
-    polarProductId: PRODUCT_IDS["thought-leader"][POLAR_ENV],
+    polarProductId: PRODUCT_IDS["thought-leader"],
     highlight: "Best value · 18% off",
     blurb:
       "5,000 credits. The pack for someone who truly understands the LinkedIn ecosystem. Credits never expire.",
