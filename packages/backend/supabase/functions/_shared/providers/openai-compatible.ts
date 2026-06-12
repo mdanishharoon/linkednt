@@ -24,7 +24,11 @@ export async function callOpenAICompatible(
     stop: null,
     [cfg.maxTokensField]: args.maxTokens,
   };
-  if (cfg.injectGroqReasoning && args.reasoningHidden) {
+  if (
+    cfg.injectGroqReasoning &&
+    args.reasoningHidden &&
+    groqModelSupportsReasoning(args.model)
+  ) {
     body.reasoning_format = "hidden";
   }
 
@@ -67,6 +71,21 @@ export async function callOpenAICompatible(
     content: data.choices?.[0]?.message?.content ?? "",
     raw: data,
   };
+}
+
+// Groq only accepts `reasoning_format` on its reasoning models (qwen3,
+// deepseek-r1, gpt-oss, qwq). Llama/gemma/mixtral reject it with a 400
+// ("`reasoning_format` is not supported with this model"), so gate the
+// injection on the model rather than the provider — the routing table sends
+// llama models for strip/summarise.
+function groqModelSupportsReasoning(model: string): boolean {
+  const m = model.toLowerCase();
+  return (
+    m.includes("qwen") ||
+    m.includes("deepseek-r1") ||
+    m.includes("gpt-oss") ||
+    m.includes("qwq")
+  );
 }
 
 function classifyChatError(
