@@ -1,67 +1,95 @@
 "use client";
 
+// How.tsx — the product demo. A faithful mini render of the extension popup
+// (voice picker) drives a feed of posts wearing the real translation card.
 import { useState } from "react";
 import { Logo, MiniBadge } from "../Logo";
 import { Avatar, Ico } from "../icons";
-import { DEMO, type Post } from "@/lib/content";
+import { TranslationCard } from "../TranslationCard";
+import { DEMO_POST, VOICES, type DemoPost, type VoiceId } from "@/lib/content";
 
-function DemoPost({
-  name,
-  title,
-  time,
-  variant,
-  slop,
-  honest,
+function DemoFeedPost({
+  post,
+  voice,
   open,
-}: Post & { open: boolean }) {
+  onToggle,
+}: {
+  post: DemoPost;
+  voice: VoiceId;
+  open: boolean;
+  onToggle: () => void;
+}) {
   return (
     <div className="post">
       <div className="post-head">
-        <Avatar variant={variant} />
+        <Avatar
+          variant={post.variant}
+          src={post.avatar}
+          invert={post.avatarInvert}
+        />
         <div style={{ minWidth: 0 }}>
           <div className="post-name">
-            {name} <span className="deg">· 1st</span>
+            {post.name} <span className="deg">· 1st</span>
           </div>
-          <div className="post-title">{title}</div>
+          <div className="post-title">{post.title}</div>
           <div className="post-meta">
-            {time} · <Ico.globe />
+            {post.time} · <Ico.globe />
           </div>
         </div>
         <span className="post-follow">+ Follow</span>
       </div>
       <div className="post-body demo-swap">
         {open ? (
-          <div className="inner honest-wrap" key="h">
-            <div className="tchip">
-              translated by linkedn&rsquo;t <span className="ln" />
-            </div>
-            <div className="honest-text">{honest}</div>
+          // key includes the voice so switching voices replays the fade.
+          <div className="inner" key={voice}>
+            <TranslationCard onShowOriginal={onToggle}>
+              {post.honest[voice]}
+            </TranslationCard>
           </div>
         ) : (
           <div className="inner" key="s">
-            <div className="slop-text">{slop}</div>
+            <div className="slop-text">{post.slop}</div>
           </div>
         )}
+      </div>
+      <div className="post-actions">
+        <span className="pa">
+          <Ico.thumb /> Like
+        </span>
+        <span className="pa">
+          <Ico.comment /> Comment
+        </span>
+        <button
+          className={"pa pa-deslop" + (open ? " on" : "")}
+          type="button"
+          onClick={onToggle}
+        >
+          <span className="deslop-chip" aria-hidden="true">
+            +
+          </span>
+          Deslop
+        </button>
       </div>
     </div>
   );
 }
 
 export function How() {
-  const [on, setOn] = useState(true);
+  const [voice, setVoice] = useState<VoiceId>("roast");
+  const [open, setOpen] = useState(true);
+
   return (
     <section className="section" id="how">
       <div className="container">
         <div className="reveal" style={{ maxWidth: 660 }}>
           <span className="eyebrow muted">How it works</span>
           <h2 className="h2" style={{ marginTop: 14 }}>
-            There&rsquo;s no step two.
+            Pick a voice. Hit Deslop.
           </h2>
           <p className="lede" style={{ marginTop: 16 }}>
-            Pin linkedn&rsquo;t, flip{" "}
-            <b style={{ color: "var(--ink)" }}>Honesty mode</b>, and the whole
-            feed starts saying what it means. That&rsquo;s the product &mdash;
-            go ahead, hit the switch.
+            A <b style={{ color: "var(--ink)" }}>Deslop</b> button appears
+            under every post on LinkedIn. The popup sets how blunt the
+            translation gets: three voices, one post, try all three.
           </p>
         </div>
 
@@ -89,12 +117,7 @@ export function How() {
             <div className="bw-tools">
               <span className="bw-tool" />
               <span className="bw-tool" />
-              <span
-                className="bw-pin"
-                onClick={() => setOn((o) => !o)}
-                title="linkedn't"
-              >
-                <span className="ring" />
+              <span className="bw-pin" title="linkedn't">
                 <MiniBadge />
               </span>
             </div>
@@ -103,43 +126,55 @@ export function How() {
             <div className="bw-pop">
               <div className="bw-pop-top">
                 <Logo size={17} />
-                <span className="st">
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: 3,
-                      background: "var(--green)",
-                    }}
-                  />{" "}
-                  Active
-                </span>
+                <span className="pop-credits">37 credits</span>
               </div>
-              <div className="bw-pop-tog" onClick={() => setOn((o) => !o)}>
-                <div>
-                  <div className="tg-lbl">Honesty mode</div>
-                  <div className="tg-sub">
-                    {on ? "Translating this page" : "Showing the originals"}
-                  </div>
-                </div>
-                <span
-                  className={"track" + (on ? " on" : "")}
-                  style={{ marginLeft: "auto" }}
-                >
-                  <span className="knob" />
-                </span>
-              </div>
-              <div className="bw-pop-stat">
-                <Ico.check />{" "}
-                <span>
-                  <b>1,204</b> posts made honest today
-                </span>
+              <div className="pop-voices">
+                <div className="pop-vhead">Translation voice</div>
+                <div className="pop-vsub">Choose how blunt you want it.</div>
+                {VOICES.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    className={"voice-row" + (voice === v.id ? " on" : "")}
+                    onClick={() => setVoice(v.id)}
+                  >
+                    <span
+                      className={"voice-viz viz-" + v.id}
+                      aria-hidden="true"
+                    >
+                      <i />
+                      <i />
+                      <i />
+                    </span>
+                    <span className="voice-copy">
+                      <strong>{v.label}</strong>
+                      <small>{v.blurb}</small>
+                    </span>
+                    <svg
+                      className="voice-check"
+                      viewBox="0 0 16 16"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M3 8.5l3.2 3.2L13 5"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                ))}
               </div>
             </div>
             <div className="bw-feed">
-              {DEMO.map((p, i) => (
-                <DemoPost key={i} {...p} open={on} />
-              ))}
+              <DemoFeedPost
+                post={DEMO_POST}
+                voice={voice}
+                open={open}
+                onToggle={() => setOpen((o) => !o)}
+              />
             </div>
           </div>
         </div>
@@ -147,9 +182,9 @@ export function How() {
         <div className="bw-caption">
           <b>Pin it once</b>
           <span className="sep">·</span>
-          <b>Flip the switch</b>
+          <b>Pick a voice</b>
           <span className="sep">·</span>
-          <b>Read the truth</b>
+          <b>Deslop anything</b>
         </div>
       </div>
     </section>

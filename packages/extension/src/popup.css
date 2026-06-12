@@ -1,21 +1,23 @@
 :root {
   color-scheme: light;
-  --page: oklch(97.6% 0.009 245);
-  --surface: oklch(99.2% 0.006 245);
-  --surface-2: oklch(95.7% 0.013 245);
-  --ink: oklch(18.5% 0.026 248);
-  --muted: oklch(49% 0.031 248);
-  --faint: oklch(68% 0.025 248);
-  --line: oklch(86.5% 0.018 248);
-  --line-strong: oklch(75% 0.032 248);
-  --blue: oklch(53.5% 0.18 253);
-  --blue-deep: oklch(39% 0.15 253);
-  --blue-wash: oklch(94.2% 0.036 253);
-  --red: oklch(56% 0.16 25);
-  --red-wash: oklch(94.5% 0.032 25);
-  --green: oklch(50% 0.12 156);
-  --shadow: 0 18px 40px oklch(25% 0.05 248 / 0.12);
-  --radius: 10px;
+  --page: #f7f8fa;
+  --surface: #ffffff;
+  --surface-2: #eef3f8;
+  --ink: rgba(0, 0, 0, 0.88);
+  --muted: rgba(0, 0, 0, 0.6);
+  --faint: rgba(0, 0, 0, 0.55);
+  --line: #e1e4e8;
+  --line-strong: #d0d5da;
+  --hairline: #f0f1f3;
+  --blue: #0a66c2;
+  --blue-deep: #004182;
+  --blue-wash: rgba(10, 102, 194, 0.08);
+  --blue-wash-strong: rgba(10, 102, 194, 0.16);
+  --red: #c4351c;
+  --red-wash: rgba(196, 53, 28, 0.08);
+  --watermark: rgba(0, 0, 0, 0.32);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 16px rgba(0, 0, 0, 0.06);
+  --radius: 8px;
 }
 
 * {
@@ -29,7 +31,6 @@ body {
   background: var(--page);
   color: var(--ink);
   font-family:
-    ui-sans-serif,
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
@@ -48,51 +49,23 @@ select {
   width: 320px;
   min-height: 456px;
   padding: 14px;
-  overflow: hidden;
-  /* Smooth diagonal gradient — no grid lines. Anchored at the top-left in a
-     warm off-white and falling through a cool page tone, hinting at the
-     blue brand without ever showing it as a slab. */
-  background: linear-gradient(
-    160deg,
-    oklch(99.2% 0.006 245) 0%,
-    oklch(97% 0.012 248) 38%,
-    oklch(94% 0.026 253) 100%
-  );
+  background: var(--page);
 }
 
-.shell::after {
-  content: "";
-  position: absolute;
-  top: -52px;
-  right: -74px;
-  width: 180px;
-  height: 180px;
-  border: 1px solid oklch(75% 0.032 248 / 0.55);
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    oklch(94.5% 0.032 25 / 0.72),
-    transparent 64%
-  );
-  pointer-events: none;
-}
-
-.hero,
-.signal-row,
+.topbar,
+.credits-hero,
 .panel,
-.advanced,
+.onboarding,
 .footer {
-  position: relative;
-  z-index: 1;
-  animation: rise-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: pop-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.hero {
-  display: grid;
-  grid-template-columns: 42px 1fr;
-  gap: 10px;
-  align-items: center;
-  padding: 0 0 10px;
+.panel:nth-of-type(2) {
+  animation-delay: 40ms;
+}
+
+.panel:nth-of-type(3) {
+  animation-delay: 80ms;
 }
 
 .mark {
@@ -106,10 +79,10 @@ select {
   background: var(--blue);
   color: #fff;
   font-size: 22px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1;
-  box-shadow: 0 1px 2px oklch(25% 0.05 248 / 0.2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 /* The apostrophe sits smaller than the 'n' and 't' so the badge reads as
@@ -119,77 +92,18 @@ select {
   margin: 0 0.5px;
 }
 
-.hero-copy {
-  min-width: 0;
-}
-
 h1,
 h2,
 p {
   margin: 0;
 }
 
-h1 {
-  color: var(--ink);
-  font-size: 27px;
-  font-weight: 840;
-  line-height: 0.98;
-  letter-spacing: 0;
-}
-
-.tagline {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 620;
-  line-height: 1.35;
-}
-
 h2 {
   color: var(--ink);
   font-size: 14px;
-  font-weight: 780;
+  font-weight: 600;
   line-height: 1.1;
   letter-spacing: 0;
-}
-
-.signal-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 5px;
-  margin-bottom: 9px;
-  animation-delay: 45ms;
-}
-
-.preview-note {
-  position: relative;
-  z-index: 1;
-  margin: -2px 0 9px;
-  padding: 8px 9px;
-  border: 1px solid oklch(86% 0.045 73);
-  border-radius: 8px;
-  background: oklch(95.5% 0.035 73);
-  color: oklch(36% 0.08 73);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.preview-note[hidden] {
-  display: none;
-}
-
-.signal-row span {
-  display: grid;
-  min-height: 24px;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: oklch(99.2% 0.006 245 / 0.82);
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 780;
-  text-transform: uppercase;
 }
 
 .panel {
@@ -198,70 +112,11 @@ h2 {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
-  box-shadow:
-    0 1px 2px oklch(25% 0.05 248 / 0.06),
-    var(--shadow);
-}
-
-.panel:nth-of-type(2) {
-  animation-delay: 90ms;
+  box-shadow: var(--shadow);
 }
 
 .compact-panel {
   padding: 10px 11px;
-}
-
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.switch {
-  position: relative;
-  flex: 0 0 auto;
-  width: 42px;
-  height: 24px;
-  cursor: pointer;
-}
-
-.switch input {
-  position: absolute;
-  opacity: 0;
-}
-
-.switch span {
-  position: absolute;
-  inset: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  background: var(--surface-2);
-  transition:
-    background 160ms ease,
-    border-color 160ms ease;
-}
-
-.switch span::after {
-  content: "";
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  background: var(--surface);
-  box-shadow: 0 1px 3px oklch(25% 0.05 248 / 0.18);
-  transition: transform 160ms ease;
-}
-
-.switch input:checked + span {
-  border-color: var(--blue);
-  background: var(--blue);
-}
-
-.switch input:checked + span::after {
-  transform: translateX(18px);
 }
 
 .section-head {
@@ -283,12 +138,20 @@ h2 {
   line-height: 1.35;
 }
 
+/* "Saved" flash in the topbar — same treatment as the overlay's kicker.
+   Sits at the right edge; when the settings gear follows it, the gear keeps
+   its corner and the flash docks beside it. */
 .save-state {
+  margin-left: auto;
   min-width: 42px;
-  color: var(--green);
+  color: var(--blue);
   font-size: 12px;
-  font-weight: 780;
+  font-weight: 700;
   text-align: right;
+}
+
+.save-state + .iconbtn {
+  margin-left: 0;
 }
 
 .field {
@@ -296,22 +159,21 @@ h2 {
   gap: 5px;
 }
 
-.field span {
-  color: var(--muted);
+.field > span {
+  color: var(--faint);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.field input,
-.field select {
+.field input {
   width: 100%;
   height: 34px;
   border: 1px solid var(--line);
   border-radius: 8px;
   outline: none;
-  background: oklch(98.7% 0.007 245);
+  background: var(--surface);
   color: var(--ink);
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
@@ -320,28 +182,146 @@ h2 {
   padding: 0 9px;
   transition:
     border-color 160ms ease,
-    box-shadow 160ms ease,
-    background 160ms ease;
+    box-shadow 160ms ease;
 }
 
-.field input:hover,
-.field select:hover {
+.field input:hover {
   border-color: var(--line-strong);
-  background: var(--surface);
 }
 
-.field input:focus,
-.field select:focus {
+.field input:focus {
   border-color: var(--blue);
-  box-shadow: 0 0 0 4px oklch(53.5% 0.18 253 / 0.12);
+  box-shadow: 0 0 0 3px var(--blue-wash);
+}
+
+/* ── custom dropdown (replaces native <select>) ── */
+.dd {
+  position: relative;
+}
+
+.dd-trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: none;
+  background: var(--surface);
+  color: var(--ink);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 11px;
+  padding: 0 28px 0 9px;
+  text-align: left;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='rgba(0,0,0,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 12px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.dd-trigger:hover {
+  border-color: var(--line-strong);
+}
+
+.dd-trigger:focus-visible,
+.dd-trigger[aria-expanded="true"] {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-wash);
+}
+
+.dd-value {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dd-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  padding: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    0 10px 24px rgba(0, 0, 0, 0.1);
+  outline: none;
+  animation: pop-enter 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.dd-menu-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
+.dd-group {
+  padding: 6px 8px 3px;
+  color: var(--faint);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.dd-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  color: var(--ink);
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    monospace;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.dd-option.is-hl {
+  background: var(--blue-wash);
+}
+
+.dd-option.is-action {
+  margin-top: 4px;
+  color: var(--blue);
+  font-weight: 700;
+}
+
+.dd-option-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dd-option-check {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--blue);
 }
 
 .field + .field {
   margin-top: 8px;
 }
 
+.primary-button + .field {
+  margin-top: 10px;
+}
+
 .primary-button,
-.ghost-button,
 .text-button {
   border: 0;
   cursor: pointer;
@@ -355,88 +335,68 @@ h2 {
   width: 100%;
   height: 34px;
   margin-top: 8px;
-  border-radius: 8px;
-  background: var(--ink);
-  color: oklch(98.5% 0.006 245);
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
   font-size: 12px;
-  font-weight: 820;
+  font-weight: 700;
+  letter-spacing: 0.01em;
   transition:
     background 160ms ease,
-    box-shadow 160ms ease,
     transform 160ms ease;
 }
 
 .primary-button:hover {
   background: var(--blue-deep);
-  box-shadow: 0 10px 22px oklch(53.5% 0.18 253 / 0.24);
-  transform: translateY(-1px);
 }
 
 .primary-button:active {
-  transform: translateY(0);
+  transform: scale(0.98);
 }
 
-.button-icon {
-  display: grid;
-  width: 16px;
-  height: 16px;
-  place-items: center;
-  border-radius: 999px;
-  background: var(--blue);
-  color: oklch(98.5% 0.006 245);
-  font-weight: 900;
+.primary-button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
-.mode-grid {
-  display: grid;
-  gap: 7px;
+/* Translation-voice picker — a quiet settings list, not cards. Rows bleed to
+   the panel edges so the hairlines run full width; the selected row is marked
+   by a blue check alone. */
+.mode-list {
+  display: flex;
+  flex-direction: column;
+  margin: 2px -11px -11px;
+  border-top: 1px solid var(--hairline);
 }
 
-.mode-card {
+.mode-row {
   position: relative;
-  display: grid;
-  grid-template-columns: 30px 1fr;
-  gap: 9px;
+  display: flex;
   align-items: center;
-  min-height: 57px;
-  padding: 9px;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  background: linear-gradient(180deg, var(--surface), oklch(97.8% 0.008 245));
+  gap: 10px;
+  padding: 10px 11px;
   cursor: pointer;
-  overflow: hidden;
-  transition:
-    border-color 160ms ease,
-    background 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
-}
-
-.mode-card::after {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
-  background: transparent;
   transition: background 160ms ease;
 }
 
-.mode-card:hover {
-  border-color: var(--line-strong);
-  box-shadow: 0 8px 18px oklch(25% 0.05 248 / 0.09);
-  transform: translateY(-1px);
+.mode-row + .mode-row {
+  border-top: 1px solid var(--hairline);
 }
 
-.mode-card:has(input:checked) {
-  border-color: oklch(65% 0.12 253);
-  background: linear-gradient(180deg, var(--surface), var(--blue-wash));
+.mode-row:last-child {
+  border-radius: 0 0 7px 7px;
 }
 
-.mode-card:has(input:checked)::after {
-  background: var(--blue);
+.mode-row:hover {
+  background: rgba(0, 0, 0, 0.02);
 }
 
-.mode-card input {
+.mode-row:has(input:focus-visible) {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+
+.mode-row input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -444,29 +404,187 @@ h2 {
   opacity: 0;
 }
 
-.mode-index {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--faint);
-  font-family:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    monospace;
-  font-size: 10px;
-  font-weight: 850;
+/* Mini-demos: each voice gets a 28px diagram of what it does to a post,
+   drawn in the overlay's skeleton-bar language. Idle = gray "before";
+   selected = the transformation plays and rests in the blue "after". */
+.mode-viz {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 28px;
 }
 
-.mode-card:has(input:checked) .mode-index {
-  border-color: oklch(72% 0.09 253);
+.mode-viz i {
+  position: absolute;
+  left: 4px;
+  height: 3px;
+  border-radius: 999px;
+  background: #dde8f0;
+  transition:
+    width 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    left 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    top 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The Group Chat: two post lines get captured into a sent chat bubble.
+   The tightened bottom-left corner is the bubble tail. */
+.mode-viz-roast::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  top: 4px;
+  width: 24px;
+  height: 18px;
+  border-radius: 7px 7px 7px 2px;
   background: var(--blue);
-  color: oklch(98.5% 0.006 245);
+  opacity: 0;
+  transform: scale(0.7);
+  transform-origin: left bottom;
+  transition:
+    opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mode-viz-roast i:nth-child(1) {
+  top: 8px;
+  width: 18px;
+}
+
+.mode-viz-roast i:nth-child(2) {
+  top: 15px;
+  width: 12px;
+}
+
+.mode-viz-roast i:nth-child(3) {
+  display: none;
+}
+
+.mode-row:has(input:checked) .mode-viz-roast::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.mode-row:has(input:checked) .mode-viz-roast i {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.mode-row:has(input:checked) .mode-viz-roast i:nth-child(1) {
+  top: 9px;
+  left: 6px;
+  width: 14px;
+}
+
+.mode-row:has(input:checked) .mode-viz-roast i:nth-child(2) {
+  top: 14px;
+  left: 6px;
+  width: 9px;
+}
+
+/* Touch Grass: jumbled, tilted lines comb themselves flat and calm. */
+.mode-viz-summarise i:nth-child(1) {
+  top: 6px;
+  width: 16px;
+  transform: rotate(-12deg) translateX(2px);
+}
+
+.mode-viz-summarise i:nth-child(2) {
+  top: 13px;
+  width: 18px;
+  transform: rotate(8deg);
+}
+
+.mode-viz-summarise i:nth-child(3) {
+  top: 20px;
+  width: 13px;
+  transform: rotate(-5deg) translateX(3px);
+}
+
+.mode-row:has(input:checked) .mode-viz-summarise i {
+  background: var(--blue);
+  transform: none;
+}
+
+.mode-row:has(input:checked) .mode-viz-summarise i:nth-child(1) {
+  width: 18px;
+}
+
+.mode-row:has(input:checked) .mode-viz-summarise i:nth-child(2) {
+  width: 18px;
+  opacity: 0.45;
+  transition-delay: 50ms;
+}
+
+.mode-row:has(input:checked) .mode-viz-summarise i:nth-child(3) {
+  width: 12px;
+  opacity: 0.7;
+  transition-delay: 100ms;
+}
+
+/* TL;DR: three post lines collapse into one short line. */
+.mode-viz-strip i:nth-child(1) {
+  top: 6px;
+  width: 20px;
+}
+
+.mode-viz-strip i:nth-child(2) {
+  top: 13px;
+  width: 14px;
+}
+
+.mode-viz-strip i:nth-child(3) {
+  top: 20px;
+  width: 17px;
+}
+
+.mode-row:has(input:checked) .mode-viz-strip i:nth-child(1) {
+  width: 10px;
+  background: var(--blue);
+  transition-delay: 80ms;
+}
+
+.mode-row:has(input:checked) .mode-viz-strip i:nth-child(2) {
+  opacity: 0;
+  transform: translateY(-7px);
+}
+
+.mode-row:has(input:checked) .mode-viz-strip i:nth-child(3) {
+  opacity: 0;
+  transform: translateY(-14px);
+}
+
+.mode-check {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--blue);
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+/* The check draws itself in on selection. */
+.mode-check path {
+  stroke-dasharray: 15;
+  stroke-dashoffset: 15;
+  transition: stroke-dashoffset 220ms cubic-bezier(0.16, 1, 0.3, 1) 40ms;
+}
+
+.mode-row:has(input:checked) .mode-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.mode-row:has(input:checked) .mode-check path {
+  stroke-dashoffset: 0;
 }
 
 .mode-copy {
+  flex: 1;
   display: grid;
   gap: 3px;
   min-width: 0;
@@ -475,79 +593,63 @@ h2 {
 .mode-copy strong {
   color: var(--ink);
   font-size: 13px;
-  font-weight: 820;
+  font-weight: 600;
   line-height: 1.15;
 }
 
 .mode-copy small {
   color: var(--muted);
   font-size: 11px;
-  line-height: 1.35;
-}
-
-.advanced {
-  animation-delay: 135ms;
-}
-
-.ghost-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 2px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 760;
-}
-
-.ghost-button:hover {
-  color: var(--ink);
-}
-
-.ghost-button span:first-child {
-  display: inline-block;
-  color: var(--red);
-  font-size: 20px;
-  line-height: 1;
-  transform: translateY(-1px);
-  transition:
-    transform 160ms ease,
-    color 160ms ease;
-}
-
-.ghost-button[aria-expanded="true"] span:first-child {
-  color: var(--blue);
-  transform: rotate(90deg) translateX(-1px);
-}
-
-.advanced-body {
-  padding: 6px 0 1px;
-  animation: unfold 180ms ease both;
+  line-height: 1.4;
 }
 
 .text-button {
   margin-top: 7px;
   padding: 0;
   background: transparent;
-  color: var(--blue-deep);
+  color: var(--blue);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
+  transition: color 160ms ease;
+}
+
+.text-button:hover {
+  color: var(--blue-deep);
 }
 
 /* Segmented control for the BYOK / Proxy path picker. Two buttons sit
    side-by-side at the same visual weight; one is "active" at a time. */
 .segmented {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
   padding: 3px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: var(--surface-2);
+  background: #f2f3f5;
+}
+
+/* The white pill is a single element that slides between tabs. */
+.segmented-thumb {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 5px);
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.segmented-thumb.at-2 {
+  transform: translateX(calc(100% + 4px));
 }
 
 .segmented-btn {
+  position: relative;
+  z-index: 1;
   height: 30px;
   border: 0;
   border-radius: 999px;
@@ -556,39 +658,24 @@ h2 {
   cursor: pointer;
   font: inherit;
   font-size: 12px;
-  font-weight: 780;
+  font-weight: 600;
   letter-spacing: 0.01em;
   transition:
-    background 160ms ease,
     color 160ms ease,
-    box-shadow 160ms ease;
+    transform 160ms ease;
 }
 
 .segmented-btn:hover {
   color: var(--ink);
 }
 
+.segmented-btn:active {
+  transform: scale(0.98);
+}
+
 .segmented-btn.is-active {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: 0 1px 3px oklch(25% 0.05 248 / 0.12);
-}
-
-/* "Honest note" callout under the Sign-in button in the credits panel —
-   subtle warm background, no heavy borders, clearly secondary information. */
-.honest-note {
-  margin-top: 10px;
-  padding: 9px 11px;
-  border-radius: 8px;
-  background: oklch(96% 0.022 73);
-  color: oklch(34% 0.06 73);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
-.honest-note strong {
-  color: oklch(28% 0.08 73);
-  font-weight: 800;
+  color: var(--blue);
+  font-weight: 700;
 }
 
 /* "On file: gsk_...abcd  Get one →" microcopy under the API key field. */
@@ -601,6 +688,11 @@ h2 {
   color: var(--muted);
   font-size: 11px;
   line-height: 1.4;
+}
+
+.key-status-error {
+  color: var(--red);
+  margin-top: 8px;
 }
 
 .key-status-line {
@@ -626,37 +718,36 @@ h2 {
 }
 
 .key-reveal {
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 2px 7px;
+  border: 0;
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: var(--blue-wash);
+  color: var(--blue);
   font-size: 10.5px;
   font-weight: 700;
-  color: var(--ink);
   cursor: pointer;
   transition:
-    background 120ms ease,
-    border-color 120ms ease;
+    background 160ms ease,
+    transform 160ms ease;
 }
 
 .key-reveal:hover {
-  background: var(--surface-2);
-  border-color: var(--line-strong);
+  background: var(--blue-wash-strong);
+}
+
+.key-reveal:active {
+  transform: scale(0.98);
 }
 
 .key-console {
   margin-left: auto;
-  color: var(--blue-deep);
-  font-weight: 800;
+  color: var(--blue);
+  font-weight: 700;
   text-decoration: none;
 }
 
 .key-console:hover {
-  color: var(--blue);
-}
-
-.text-button:hover {
-  color: var(--blue);
+  color: var(--blue-deep);
 }
 
 .footer {
@@ -664,9 +755,9 @@ h2 {
   align-items: center;
   gap: 6px;
   padding-top: 5px;
-  color: var(--muted);
+  color: var(--watermark);
   font-size: 11px;
-  animation-delay: 170ms;
+  animation-delay: 80ms;
 }
 
 /* Used on Home + Settings now that we dropped the "Runs only on LinkedIn"
@@ -676,55 +767,33 @@ h2 {
 }
 
 .footer a {
-  color: var(--blue-deep);
-  font-weight: 800;
+  color: var(--muted);
+  font-weight: 600;
   text-decoration: none;
+  transition: color 160ms ease;
 }
 
 .footer a:hover {
   color: var(--blue);
 }
 
-@keyframes rise-in {
+@keyframes pop-enter {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(6px) scale(0.99);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes unfold {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero,
-  .signal-row,
-  .panel,
-  .advanced,
-  .footer,
-  .advanced-body {
-    animation: none;
-  }
-
-  .field input,
-  .primary-button,
-  .mode-card,
-  .mode-card::after,
-  .ghost-button span:first-child,
-  .switch span,
-  .switch span::after {
-    transition: none;
+  100% {
+    background-position: 0 0;
   }
 }
 
@@ -734,13 +803,13 @@ h2 {
   align-items: center;
   gap: 10px;
   padding: 4px 4px 12px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--hairline);
   margin-bottom: 12px;
 }
 
 .topbar-title {
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--ink);
 }
@@ -749,7 +818,7 @@ h2 {
   width: 30px;
   height: 30px;
   font-size: 15px;
-  border-radius: 7px;
+  border-radius: 8px;
 }
 
 .topbar .mark .apos {
@@ -759,24 +828,29 @@ h2 {
 .iconbtn {
   margin-left: auto;
   background: transparent;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 0;
+  border-radius: 999px;
   width: 28px;
   height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--ink);
+  color: var(--muted);
   font-size: 15px;
   transition:
-    background 140ms ease,
-    border-color 140ms ease;
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .iconbtn:hover {
-  background: var(--surface-2);
-  border-color: var(--line-strong);
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--ink);
+}
+
+.iconbtn:active {
+  transform: scale(0.98);
 }
 
 /* When the iconbtn is the FIRST element in the topbar (Settings back arrow),
@@ -787,16 +861,17 @@ h2 {
 
 /* ── credits hero (Home view) ── */
 .credits-hero {
-  background: linear-gradient(
-    155deg,
-    var(--blue-wash),
-    oklch(96% 0.018 248) 70%
-  );
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 18px 16px 16px;
   margin-bottom: 10px;
-  animation: rise-in 480ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  box-shadow: var(--shadow);
+  /* Pinned to the tallest state (signed-in credits block) so switching
+     between Credits and BYOK doesn't resize the popup window. */
+  min-height: 150px;
+  display: grid;
+  align-content: center;
 }
 
 .credits-block {
@@ -807,26 +882,47 @@ h2 {
 }
 
 .credits-number {
-  font-size: 56px;
-  font-weight: 900;
+  font-size: 52px;
+  font-weight: 600;
   line-height: 1;
-  letter-spacing: -0.04em;
-  color: var(--blue-deep);
+  letter-spacing: -0.02em;
+  color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
 
 .credits-sub {
   margin-top: 6px;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--muted);
 }
 
-.credits-loading {
-  text-align: center;
-  font-size: 13px;
-  color: var(--muted);
-  margin: 8px 0;
+/* Shimmer placeholder while the account status loads — same bars as the
+   overlay's .lo-skeleton. */
+.credits-skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0 4px;
+}
+
+.skeleton {
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eef3f8, #dde8f0, #eef3f8);
+  background-size: 180% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-number {
+  width: 72px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.skeleton-line {
+  width: 60%;
+  height: 12px;
 }
 
 .credits-buy {
@@ -836,23 +932,23 @@ h2 {
   margin-top: 10px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: var(--blue);
-  color: #fff;
+  background: var(--blue-wash);
+  color: var(--blue);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   text-decoration: none;
-  letter-spacing: -0.01em;
-  box-shadow: 0 2px 6px oklch(53.5% 0.18 253 / 0.28);
+  letter-spacing: 0.01em;
   transition:
-    background 140ms ease,
-    transform 140ms ease,
-    box-shadow 140ms ease;
+    background 160ms ease,
+    transform 160ms ease;
 }
 
 .credits-buy:hover {
-  background: var(--blue-deep);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 10px oklch(53.5% 0.18 253 / 0.36);
+  background: var(--blue-wash-strong);
+}
+
+.credits-buy:active {
+  transform: scale(0.98);
 }
 
 .credits-cta {
@@ -864,25 +960,84 @@ h2 {
 
 .credits-cta h2 {
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--ink);
   text-align: center;
   margin-bottom: 2px;
 }
 
-.byok-hero-meta {
+/* BYOK hero state: key glyph, provider + model, and an actionable status.
+   Fills the same pinned frame as the credits block. */
+.byok-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--ink);
-  margin: 4px 0 0;
+  gap: 3px;
 }
 
-.byok-hero-status {
-  font-size: 11.5px;
+.byok-key {
+  width: 24px;
+  height: 24px;
+  color: var(--faint);
+  margin-bottom: 5px;
+}
+
+.byok-hero.has-key .byok-key {
+  color: var(--blue);
+}
+
+.byok-provider {
+  font-size: 15px;
   font-weight: 600;
+  color: var(--ink);
+}
+
+.byok-model {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
   color: var(--muted);
-  margin-top: 2px;
+}
+
+.byok-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 9px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--blue-wash);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.byok-chip svg {
+  width: 12px;
+  height: 12px;
+}
+
+.byok-add {
+  margin-top: 9px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.byok-add:hover {
+  background: var(--blue-deep);
+}
+
+.byok-add:active {
+  transform: scale(0.98);
 }
 
 /* ── onboarding view ── */
@@ -914,7 +1069,7 @@ h2 {
 
 .onb-title {
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--ink);
   margin: 0;
@@ -932,7 +1087,7 @@ h2 {
   gap: 10px;
   width: 100%;
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--faint);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -950,17 +1105,24 @@ h2 {
 .onb-byok {
   width: 100%;
   padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--blue-wash);
+  color: var(--blue);
+  font-size: 12px;
   font-weight: 700;
   text-align: center;
-  color: var(--ink);
-  background: var(--surface);
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
 }
 
 .onb-byok:hover {
-  border-color: var(--line-strong);
-  background: var(--surface-2);
+  color: var(--blue);
+  background: var(--blue-wash-strong);
+}
+
+.onb-byok:active {
+  transform: scale(0.98);
 }
 
 /* ── custom-provider draft form ── */
@@ -970,10 +1132,10 @@ h2 {
   gap: 8px;
   padding: 10px;
   margin-top: 4px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 10px;
-  background: oklch(98.5% 0.006 245);
-  animation: rise-in 320ms ease both;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbfc;
+  animation: pop-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .row-actions {
@@ -995,5 +1157,38 @@ h2 {
 }
 
 .row-actions .text-button.danger:hover {
-  color: oklch(46% 0.16 25);
+  color: #a32c17;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar,
+  .credits-hero,
+  .panel,
+  .onboarding,
+  .footer,
+  .custom-draft,
+  .dd-menu,
+  .skeleton {
+    animation: none;
+  }
+
+  .primary-button,
+  .text-button,
+  .segmented-btn,
+  .segmented-thumb,
+  .iconbtn,
+  .credits-buy,
+  .byok-add,
+  .onb-byok,
+  .mode-row,
+  .mode-check,
+  .mode-check path,
+  .mode-viz i,
+  .mode-viz-roast::before,
+  .field input,
+  .dd-trigger,
+  .key-reveal,
+  .footer a {
+    transition: none;
+  }
 }
