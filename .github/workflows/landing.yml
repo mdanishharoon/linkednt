@@ -39,7 +39,8 @@ on:
 #              NEXT_PUBLIC_POLAR_ENV (=production), NEXT_PUBLIC_SITE_URL
 #              (=https://linkednt.com),
 #              NEXT_PUBLIC_POLAR_PRODUCT_{UNEMPLOYED,OPEN_TO_WORK,THOUGHT_LEADER}
-#              (production Polar product UUIDs)
+#              (production Polar product UUIDs),
+#              CLOUDFLARE_PROJECT_NAME (optional, defaults to `linkednt`)
 #     Secrets: (none specific to this env — shared CF token below)
 #   sandbox
 #     Vars:    NEXT_PUBLIC_SUPABASE_URL (sandbox project URL),
@@ -47,7 +48,9 @@ on:
 #              NEXT_PUBLIC_POLAR_ENV (=sandbox),
 #              NEXT_PUBLIC_SITE_URL (=https://dev.linkednt.com),
 #              NEXT_PUBLIC_POLAR_PRODUCT_{UNEMPLOYED,OPEN_TO_WORK,THOUGHT_LEADER}
-#              (sandbox Polar product UUIDs)
+#              (sandbox Polar product UUIDs),
+#              CLOUDFLARE_PROJECT_NAME (=linkednt-dev — its own Pages project,
+#              production branch `dev`, custom domain dev.linkednt.com)
 #
 # Required repository-level secrets:
 #   CLOUDFLARE_API_TOKEN  — Pages:Edit permission, shared across envs
@@ -136,17 +139,22 @@ jobs:
         with:
           bun-version: latest
 
-      # CF Pages reads the --branch arg to decide which custom-domain
-      # binding (set up in the CF dashboard) gets pointed at this build:
-      #   --branch=main → linkednt.com (production assignment)
-      #   --branch=dev  → dev.linkednt.com (custom domain bound to dev)
+      # A Cloudflare Pages custom domain can only point at a project's
+      # PRODUCTION branch — you can't bind a custom domain to a preview
+      # branch inside one project. So each environment uses its OWN Pages
+      # project, selected per-environment via vars.CLOUDFLARE_PROJECT_NAME
+      # (falls back to the repo default `linkednt` if unset):
+      #   production → project `linkednt`     (prod branch main → linkednt.com)
+      #   sandbox    → project `linkednt-dev` (prod branch dev  → dev.linkednt.com)
+      # Each project's production branch == its deploy branch, so --branch
+      # below produces a production deployment that the custom domain serves.
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         id: deploy
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy packages/landing/out --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.ref_name }} --commit-dirty=true
+          command: pages deploy packages/landing/out --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.ref_name }} --commit-dirty=true
           packageManager: bun
 
       - name: Set repository homepage
@@ -159,7 +167,7 @@ jobs:
             exit 0
           fi
           DEPLOY_URL="${{ steps.deploy.outputs.deployment-url }}"
-          PAGES_URL="https://${{ env.CLOUDFLARE_PROJECT_NAME }}.pages.dev"
+          PAGES_URL="https://${{ vars.CLOUDFLARE_PROJECT_NAME || env.CLOUDFLARE_PROJECT_NAME }}.pages.dev"
           HOMEPAGE="${DEPLOY_URL:-$PAGES_URL}"
           gh repo edit --homepage "$HOMEPAGE"
 
@@ -194,7 +202,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy packages/landing/out --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.head_ref }} --commit-dirty=true
+          command: pages deploy packages/landing/out --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.head_ref }} --commit-dirty=true
           packageManager: bun
 
       - name: Comment preview URL
