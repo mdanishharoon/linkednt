@@ -37,13 +37,17 @@ on:
 #   production
 #     Vars:    NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
 #              NEXT_PUBLIC_POLAR_ENV (=production), NEXT_PUBLIC_SITE_URL
-#              (=https://linkednt.com)
+#              (=https://linkednt.com),
+#              NEXT_PUBLIC_POLAR_PRODUCT_{UNEMPLOYED,OPEN_TO_WORK,THOUGHT_LEADER}
+#              (production Polar product UUIDs)
 #     Secrets: (none specific to this env — shared CF token below)
 #   sandbox
 #     Vars:    NEXT_PUBLIC_SUPABASE_URL (sandbox project URL),
 #              NEXT_PUBLIC_SUPABASE_ANON_KEY (sandbox anon key),
 #              NEXT_PUBLIC_POLAR_ENV (=sandbox),
-#              NEXT_PUBLIC_SITE_URL (=https://dev.linkednt.com)
+#              NEXT_PUBLIC_SITE_URL (=https://dev.linkednt.com),
+#              NEXT_PUBLIC_POLAR_PRODUCT_{UNEMPLOYED,OPEN_TO_WORK,THOUGHT_LEADER}
+#              (sandbox Polar product UUIDs)
 #
 # Required repository-level secrets:
 #   CLOUDFLARE_API_TOKEN  — Pages:Edit permission, shared across envs
@@ -99,6 +103,9 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_POLAR_ENV: ${{ vars.NEXT_PUBLIC_POLAR_ENV }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_POLAR_PRODUCT_UNEMPLOYED: ${{ vars.NEXT_PUBLIC_POLAR_PRODUCT_UNEMPLOYED }}
+          NEXT_PUBLIC_POLAR_PRODUCT_OPEN_TO_WORK: ${{ vars.NEXT_PUBLIC_POLAR_PRODUCT_OPEN_TO_WORK }}
+          NEXT_PUBLIC_POLAR_PRODUCT_THOUGHT_LEADER: ${{ vars.NEXT_PUBLIC_POLAR_PRODUCT_THOUGHT_LEADER }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
