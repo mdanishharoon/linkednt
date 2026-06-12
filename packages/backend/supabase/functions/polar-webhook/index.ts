@@ -7,14 +7,16 @@
 //
 // Security:
 //   - verify_jwt is disabled in deploy (this is a public webhook endpoint)
-//   - HMAC signature verified against POLAR_WEBHOOK_SECRET; mismatch → 401
-//   - idempotency via processed_webhooks (webhook_id is Polar's event id)
+//   - Standard Webhooks signature (HMAC-SHA256 over
+//     `{webhook-id}.{webhook-timestamp}.{body}`, base64) verified against the
+//     signing secret; mismatch → 401. See verifySignature below.
+//   - idempotency via processed_webhooks (webhook_id is Polar's order id)
 //   - we only act on event.type in HANDLED_EVENT_TYPES; everything else is
 //     ack'd with 200 so Polar stops retrying
 //
 // Env vars (set via `supabase secrets set`):
-//   - POLAR_WEBHOOK_SECRET           — live webhook signing secret
-//   - POLAR_SANDBOX_WEBHOOK_SECRET   — sandbox webhook signing secret
+//   - POLAR_WEBHOOK_SECRET           — live webhook signing secret (whsec_…)
+//   - POLAR_SANDBOX_WEBHOOK_SECRET   — sandbox webhook signing secret (whsec_…)
 //
 // We verify against BOTH secrets and accept whichever matches. Reason:
 // if you keep webhook endpoints configured in both the live AND sandbox
@@ -64,36 +66,67 @@ function ack(body: string, status = 200): Response {
   });
 }
 
+// Decode a Standard Webhooks secret to its raw HMAC key bytes. Secrets are
+// `whsec_<base64>` (the prefix is optional); the key is the base64 payload
+// decoded to bytes — NOT the secret string used as-is.
+function decodeSecret(secret: string): Uint8Array {
+  const b64 = secret.startsWith("whsec_")
+    ? secret.slice("whsec_".length)
+    : secret;
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
+
+// Polar signs webhooks per the Standard Webhooks spec
+// (https://www.standardwebhooks.com): the HMAC-SHA256 is computed over
+// `{webhook-id}.{webhook-timestamp}.{body}`, the key is the base64-decoded
+// secret, and the `webhook-signature` header is a space-separated list of
+// `v1,<base64sig>` entries. We accept if any entry matches.
+//
+// We deliberately do NOT enforce the spec's timestamp tolerance: Polar reuses
+// the original id/timestamp/signature when retrying a failed delivery, which
+// can arrive hours later, and `processed_webhooks` already gives us replay +
+// duplicate protection.
 async function verifySignature(
+  id: string,
+  timestamp: string,
   body: string,
-  signature: string | null,
+  signatureHeader: string | null,
   secret: string,
 ): Promise<boolean> {
-  if (!signature || !secret) return false;
+  if (!signatureHeader || !secret || !id || !timestamp) return false;
+
+  let keyBytes: Uint8Array;
+  try {
+    keyBytes = decodeSecret(secret);
+  } catch {
+    return false; // secret wasn't valid base64
+  }
 
   const key = await crypto.subtle.importKey(
     "raw",
-    new TextEncoder().encode(secret),
+    keyBytes,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
   );
+  const signed = `${id}.${timestamp}.${body}`;
   const computed = await crypto.subtle.sign(
     "HMAC",
     key,
-    new TextEncoder().encode(body),
+    new TextEncoder().encode(signed),
   );
-  const computedHex = Array.from(new Uint8Array(computed))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const expected = btoa(String.fromCharCode(...new Uint8Array(computed)));
 
-  // Polar's webhook-signature header can be either the raw hex digest or a
-  // prefixed format. Accept both.
-  const provided = signature
-    .replace(/^sha256=/, "")
-    .trim()
-    .toLowerCase();
-  return timingSafeEqual(computedHex, provided);
+  for (const part of signatureHeader.split(" ")) {
+    const comma = part.indexOf(",");
+    if (comma === -1) continue;
+    if (part.slice(0, comma) !== "v1") continue;
+    if (timingSafeEqual(part.slice(comma + 1), expected)) return true;
+  }
+  return false;
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -118,21 +151,28 @@ Deno.serve(async (req) => {
   }
 
   const body = await req.text();
+  // Standard Webhooks headers. `webhook-id` here is the delivery id (part of
+  // the signed payload) — distinct from the order id we use for idempotency.
   const sig =
     req.headers.get("webhook-signature") ??
     req.headers.get("polar-webhook-signature") ??
     req.headers.get("x-polar-signature");
+  const deliveryId = req.headers.get("webhook-id") ?? "";
+  const timestamp = req.headers.get("webhook-timestamp") ?? "";
 
   // Try both secrets; accept whichever validates. Lets live + sandbox
   // webhooks share one endpoint without flipping anything.
   let verified = false;
   let matchedEnv: "live" | "sandbox" | null = null;
-  if (liveSecret && (await verifySignature(body, sig, liveSecret))) {
+  if (
+    liveSecret &&
+    (await verifySignature(deliveryId, timestamp, body, sig, liveSecret))
+  ) {
     verified = true;
     matchedEnv = "live";
   } else if (
     sandboxSecret &&
-    (await verifySignature(body, sig, sandboxSecret))
+    (await verifySignature(deliveryId, timestamp, body, sig, sandboxSecret))
   ) {
     verified = true;
     matchedEnv = "sandbox";
@@ -140,6 +180,8 @@ Deno.serve(async (req) => {
   if (!verified) {
     console.warn(`${LOG} signature mismatch`, {
       hasSig: !!sig,
+      hasId: !!deliveryId,
+      hasTs: !!timestamp,
       hasLive: !!liveSecret,
       hasSandbox: !!sandboxSecret,
     });
