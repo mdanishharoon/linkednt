@@ -7,6 +7,11 @@ name: Repo admin (manual)
 # `gh workflow run repo-admin.yml --ref <branch>`.
 
 on:
+  # workflow_dispatch only registers from the default branch; also run on push
+  # when this file changes so it can self-execute from any branch (e.g. dev).
+  push:
+    paths:
+      - ".github/workflows/repo-admin.yml"
   workflow_dispatch:
     inputs:
       delete_preview_env:
@@ -33,7 +38,9 @@ jobs:
             exit 1
           fi
 
-          if [ "${{ inputs.delete_preview_env }}" = "true" ]; then
+          # On push there are no inputs (empty) — default to running both tasks.
+          # On manual dispatch, honour the false toggles.
+          if [ "${{ inputs.delete_preview_env }}" != "false" ]; then
             if gh api -X DELETE "repos/$REPO/environments/Preview"; then
               echo "✓ deleted 'Preview' environment"
             else
@@ -41,7 +48,7 @@ jobs:
             fi
           fi
 
-          if [ "${{ inputs.set_homepage }}" = "true" ]; then
+          if [ "${{ inputs.set_homepage }}" != "false" ]; then
             gh repo edit "$REPO" --homepage "https://linkednt.com"
             echo "✓ homepage → https://linkednt.com"
           fi
