@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { DevBanner } from "../components/DevBanner";
 
 // The body runs on the native system grotesk (see --sans in globals.css) to sit
 // in LinkedIn's uncanny valley. Plus Jakarta Sans is used only for the wordmark
@@ -51,7 +52,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={jakarta.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <DevBanner />
+      </body>
     </html>
   );
 }
