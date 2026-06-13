@@ -1,0 +1,89 @@
+name: Extension CI & Build
+
+# Type-checks, tests, and packages the browser extension into a downloadable
+# .zip artifact on every push/PR to the two long-lived branches. Mirrors
+# landing.yml's branch -> environment binding:
+#   - main -> production env -> prod build    (chrome-mv3-prod.zip)
+#   - dev  -> sandbox env    -> sandbox build (chrome-mv3-development.zip)
+#
+# Config (Supabase URL/anon + site URL) is injected via PLASMO_PUBLIC_*, mapped
+# from the SAME per-environment GitHub Variables the landing uses (one source of
+# truth per env). The prod build also has hardcoded fallbacks in
+# src/lib/supabase-config.ts, so it stays byte-reproducible from committed code
+# without injecting anything; the SANDBOX build has no fallback, so it REQUIRES
+# the sandbox vars — hence they're only injected on the sandbox path.
+#
+# Required GitHub environment Variables (already set for the landing):
+#   production: NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY (prod), NEXT_PUBLIC_SITE_URL (=https://linkednt.com)
+#   sandbox:    NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY (sandbox), NEXT_PUBLIC_SITE_URL (=https://dev.linkednt.com)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, dev]
+    paths:
+      - "packages/extension/**"
+      - ".github/workflows/extension.yml"
+      - "package.json"
+      - "bun.lock"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "packages/extension/**"
+      - ".github/workflows/extension.yml"
+      - "package.json"
+      - "bun.lock"
+
+jobs:
+  build:
+    name: Typecheck, test & package
+    runs-on: ubuntu-latest
+    # On push use the branch's env; on PR use the base (target) branch's env.
+    environment: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && 'production' || 'sandbox' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - run: bun install --frozen-lockfile
+
+      - name: Typecheck extension
+        run: bun ext:typecheck
+
+      - name: Test extension
+        run: bun ext:test
+
+      # main -> production: prod build from committed config (no injection).
+      - name: Build & package (prod)
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        run: bun ext:package:prod
+
+      # dev -> sandbox: inject sandbox config (no sandbox fallback exists).
+      - name: Build & package (sandbox)
+        if: github.ref != 'refs/heads/main' && github.base_ref != 'main'
+        run: bun ext:package:dev
+        env:
+          PLASMO_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          PLASMO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          PLASMO_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+
+      - name: Resolve artifact label
+        id: meta
+        run: echo "label=${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && 'prod' || 'sandbox' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload extension zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: linkednt-extension-${{ steps.meta.outputs.label }}
+          path: packages/extension/build/*.zip
+          if-no-files-found: error
+          retention-days: 14
