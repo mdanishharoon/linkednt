@@ -24,3 +24,15 @@ export const SUPABASE_ANON_KEY =
 
 export const SITE_URL =
   process.env.PLASMO_PUBLIC_SITE_URL || "https://linkednt.com";
+
+// Derived from the actual build target, NOT a separate env var — so it's
+// correct whether the env came from .env.* or the hardcoded fallback. Anything
+// not pointed at the prod project is treated as a non-prod (sandbox/dev) build,
+// which drives the SandboxBadge in the popup. Prod builds resolve to true and
+// render no badge, so this is safe to keep on main.
+export const IS_PRODUCTION = SUPABASE_URL === PROD_SUPABASE_URL;
+
+// Short project ref (subdomain) for display, e.g. "sihdgzbbdlpzrgsfjfqw".
+export const SUPABASE_REF = SUPABASE_URL.replace(/^https?:\/\//, "").split(
+  ".",
+)[0];

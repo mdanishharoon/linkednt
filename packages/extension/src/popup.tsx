@@ -1,6 +1,7 @@
 import { sendToBackground } from "@plasmohq/messaging";
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 
+import { SandboxBadge } from "~components/SandboxBadge";
 import { isCustomProviderId, newCustomProviderId } from "~lib/providers/custom";
 import { listAllProviders, listProviders } from "~lib/providers/registry";
 import type { CustomProvider } from "~lib/providers/types";
@@ -1133,4 +1134,11 @@ function CustomDraftForm(props: {
   );
 }
 
-export default Popup;
+export default function PopupRoot() {
+  return (
+    <>
+      <Popup />
+      <SandboxBadge />
+    </>
+  );
+}
