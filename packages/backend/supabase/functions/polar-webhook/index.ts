@@ -66,28 +66,42 @@ function ack(body: string, status = 200): Response {
   });
 }
 
-// Decode a Standard Webhooks secret to its raw HMAC key bytes. Secrets are
-// `whsec_<base64>` (the prefix is optional); the key is the base64 payload
-// decoded to bytes — NOT the secret string used as-is.
-function decodeSecret(secret: string): Uint8Array {
-  const b64 = secret.startsWith("whsec_")
+// Candidate HMAC keys derived from the signing secret. Polar's signature is
+// HMAC-SHA256 over `{webhook-id}.{webhook-timestamp}.{body}`, base64-encoded —
+// but how it derives the *key* from the secret depends on how the secret was
+// created. Empirically (sandbox, secret supplied via the API), Polar keys the
+// HMAC on the FULL secret string as raw UTF-8 bytes — INCLUDING the `whsec_`
+// prefix — NOT the Standard Webhooks convention (strip `whsec_`, base64-decode
+// the rest). To stay correct across both — custom-supplied secrets and
+// dashboard-generated ones — we try every reasonable derivation and accept the
+// signature if ANY matches. All are over the same secret, so this doesn't
+// weaken security (an attacker still needs the secret).
+function secretKeyCandidates(secret: string): Uint8Array[] {
+  const enc = new TextEncoder();
+  const candidates: Uint8Array[] = [enc.encode(secret)]; // raw full string ← Polar (sandbox)
+  const noPrefix = secret.startsWith("whsec_")
     ? secret.slice("whsec_".length)
     : secret;
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes;
+  if (noPrefix !== secret) candidates.push(enc.encode(noPrefix)); // raw, prefix stripped
+  try {
+    // Standard Webhooks: base64-decode the part after `whsec_`.
+    const bin = atob(noPrefix);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    candidates.push(bytes);
+  } catch {
+    // noPrefix wasn't valid base64 — skip that derivation.
+  }
+  return candidates;
 }
 
-// Polar signs webhooks per the Standard Webhooks spec
-// (https://www.standardwebhooks.com): the HMAC-SHA256 is computed over
-// `{webhook-id}.{webhook-timestamp}.{body}`, the key is the base64-decoded
-// secret, and the `webhook-signature` header is a space-separated list of
-// `v1,<base64sig>` entries. We accept if any entry matches.
+// The HMAC-SHA256 is over `{webhook-id}.{webhook-timestamp}.{body}` and the
+// `webhook-signature` header is a space-separated list of `v1,<base64sig>`
+// entries. Accept if any signature matches any key derivation.
 //
-// We deliberately do NOT enforce the spec's timestamp tolerance: Polar reuses
-// the original id/timestamp/signature when retrying a failed delivery, which
-// can arrive hours later, and `processed_webhooks` already gives us replay +
+// We deliberately do NOT enforce a timestamp tolerance: Polar reuses the
+// original id/timestamp/signature when retrying a failed delivery, which can
+// arrive hours later, and `processed_webhooks` already gives us replay +
 // duplicate protection.
 async function verifySignature(
   id: string,
@@ -98,33 +112,27 @@ async function verifySignature(
 ): Promise<boolean> {
   if (!signatureHeader || !secret || !id || !timestamp) return false;
 
-  let keyBytes: Uint8Array;
-  try {
-    keyBytes = decodeSecret(secret);
-  } catch {
-    return false; // secret wasn't valid base64
-  }
+  const provided = signatureHeader
+    .split(" ")
+    .filter((p) => p.startsWith("v1,"))
+    .map((p) => p.slice("v1,".length));
+  if (provided.length === 0) return false;
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    keyBytes,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const signed = `${id}.${timestamp}.${body}`;
-  const computed = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(signed),
-  );
-  const expected = btoa(String.fromCharCode(...new Uint8Array(computed)));
+  const signed = new TextEncoder().encode(`${id}.${timestamp}.${body}`);
 
-  for (const part of signatureHeader.split(" ")) {
-    const comma = part.indexOf(",");
-    if (comma === -1) continue;
-    if (part.slice(0, comma) !== "v1") continue;
-    if (timingSafeEqual(part.slice(comma + 1), expected)) return true;
+  for (const keyBytes of secretKeyCandidates(secret)) {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyBytes,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const computed = await crypto.subtle.sign("HMAC", key, signed);
+    const expected = btoa(String.fromCharCode(...new Uint8Array(computed)));
+    for (const sig of provided) {
+      if (timingSafeEqual(sig, expected)) return true;
+    }
   }
   return false;
 }

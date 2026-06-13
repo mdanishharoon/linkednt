@@ -53,6 +53,13 @@ const POLAR_TOKEN_ENV = IS_PRODUCTION
   ? "POLAR_ACCESS_TOKEN"
   : "POLAR_SANDBOX_TOKEN";
 
+// Landing origin for the post-checkout success page + embed origin. Must match
+// the environment so a sandbox checkout returns to dev.linkednt.com (not prod).
+// Overridable via SITE_URL; otherwise derived from POLAR_ENV.
+const SITE_URL =
+  Deno.env.get("SITE_URL") ??
+  (IS_PRODUCTION ? "https://linkednt.com" : "https://dev.linkednt.com");
+
 const requestSchema = z.object({
   productId: z.string().uuid(),
   userId: z.string().uuid(),
@@ -107,8 +114,8 @@ Deno.serve(async (req) => {
       credits: String(credits),
     },
     customer_email: customerEmail,
-    success_url: `https://linkednt.com/pricing/success?credits=${credits}`,
-    embed_origin: "https://linkednt.com",
+    success_url: `${SITE_URL}/pricing/success?credits=${credits}`,
+    embed_origin: SITE_URL,
   };
 
   let res: Response;
