@@ -12,9 +12,8 @@
 //   - URL is just our project subdomain
 //   - anon key is the Supabase publishable key, gated by RLS at the DB
 
-const PROD_SUPABASE_URL = "https://gmzisvcyvjrsjrovvysz.supabase.co";
-const PROD_SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtemlzdmN5dmpyc2pyb3Z2eXN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMjgwNDksImV4cCI6MjA5NTkwNDA0OX0.m6qNSa8fktmPJlmbKyAR_SumOEUSXtQRvWK6wvz2TME";
+const PROD_SUPABASE_URL = "https://deagkfqvklpzewvlgorp.supabase.co";
+const PROD_SUPABASE_ANON_KEY = "sb_publishable_xWoIG82GD474s8w97GpnrQ_9FmrQit9";
 
 export const SUPABASE_URL =
   process.env.PLASMO_PUBLIC_SUPABASE_URL || PROD_SUPABASE_URL;
