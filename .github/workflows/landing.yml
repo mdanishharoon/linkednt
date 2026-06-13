@@ -166,9 +166,9 @@ jobs:
             echo "::warning::GH_ADMIN_TOKEN not set — skipping homepage update."
             exit 0
           fi
-          DEPLOY_URL="${{ steps.deploy.outputs.deployment-url }}"
-          PAGES_URL="https://${{ vars.CLOUDFLARE_PROJECT_NAME || env.CLOUDFLARE_PROJECT_NAME }}.pages.dev"
-          HOMEPAGE="${DEPLOY_URL:-$PAGES_URL}"
+          # Canonical custom domain, NOT the per-deploy *.pages.dev hash URL.
+          HOMEPAGE="${{ vars.NEXT_PUBLIC_SITE_URL }}"
+          HOMEPAGE="${HOMEPAGE:-https://${{ vars.CLOUDFLARE_PROJECT_NAME || env.CLOUDFLARE_PROJECT_NAME }}.pages.dev}"
           gh repo edit --homepage "$HOMEPAGE"
 
   deploy-preview:
