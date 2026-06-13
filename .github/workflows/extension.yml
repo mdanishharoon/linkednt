@@ -38,6 +38,9 @@ jobs:
   build:
     name: Typecheck, test & package
     runs-on: ubuntu-latest
+    # contents:write lets the built-in GITHUB_TOKEN publish the Release.
+    permissions:
+      contents: write
     # On push use the branch's env; on PR use the base (target) branch's env.
     environment: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && 'production' || 'sandbox' }}
     steps:
@@ -83,19 +86,15 @@ jobs:
       # Publish the zip as a GitHub Release (surfaced on the repo's main page),
       # not an ephemeral, hard-to-find Actions artifact. One rolling release per
       # environment (tag `extension-sandbox` / `extension-prod`); the asset is
-      # replaced in place each push. Uses GH_ADMIN_TOKEN (PAT w/ repo scope) —
-      # the same admin token the landing uses for the homepage update; the
-      # default GITHUB_TOKEN can't always manage releases on protected repos.
-      # PR runs still build (validate) above but don't publish.
+      # replaced in place each push. Uses the built-in GITHUB_TOKEN with
+      # contents:write — releases are a Contents operation, which the
+      # GH_ADMIN_TOKEN fine-grained PAT lacks (it only carries Administration,
+      # used by repo-admin.yml). PR runs still build above but don't publish.
       - name: Publish extension zip as a Release
         if: github.event_name == 'push'
         env:
-          GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -z "$GH_TOKEN" ]; then
-            echo "::error::GH_ADMIN_TOKEN not set — cannot publish the extension release."
-            exit 1
-          fi
           LABEL='${{ steps.meta.outputs.label }}'
           TAG="extension-$LABEL"
           ZIP="$(ls packages/extension/build/*.zip | head -1)"
