@@ -17,8 +17,14 @@ export interface ProviderCallArgs {
   reasoningHidden?: boolean;
 }
 
+/** Token usage reported by the provider, for operator cost accounting. */
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
 export type ProviderCallResult =
-  | { ok: true; content: string; raw: unknown }
+  | { ok: true; content: string; raw: unknown; usage?: TokenUsage }
   | { ok: false; code: RewriteErrorCode; error: string; raw?: unknown };
 
 export interface Provider {

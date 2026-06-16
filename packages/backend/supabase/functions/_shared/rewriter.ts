@@ -5,6 +5,7 @@ import {
   temperatureForMode,
 } from "./prompts.ts";
 import { getProvider } from "./providers/registry.ts";
+import type { TokenUsage } from "./providers/types.ts";
 import type { Mode, RewriteErrorCode } from "./types.ts";
 
 const LOG = "[linkednt:fn:rw]";
@@ -18,7 +19,7 @@ export interface RewriteCallArgs {
 }
 
 export type RewriteCallResult =
-  | { ok: true; rewrite: string }
+  | { ok: true; rewrite: string; usage: TokenUsage }
   | { ok: false; code: RewriteErrorCode; error: string };
 
 /**
@@ -55,8 +56,13 @@ export async function runRewrite(
     });
   }
 
+  let inputTokens = 0;
+  let outputTokens = 0;
+
   const first = await callOnce(false);
   if (!first.ok) return first;
+  inputTokens += first.usage?.inputTokens ?? 0;
+  outputTokens += first.usage?.outputTokens ?? 0;
 
   let output = cleanModelOutput(first.content);
 
@@ -65,6 +71,10 @@ export async function runRewrite(
     console.info(`${LOG} retrying`, { reason: retryReason, mode: args.mode });
     const retry = await callOnce(true);
     if (retry.ok) {
+      // We're billed for the retry call too — count its tokens regardless of
+      // whether its output ends up winning.
+      inputTokens += retry.usage?.inputTokens ?? 0;
+      outputTokens += retry.usage?.outputTokens ?? 0;
       const clean = cleanModelOutput(retry.content);
       if (clean) output = clean;
     }
@@ -73,7 +83,7 @@ export async function runRewrite(
   if (!output) {
     return { ok: false, code: "EMPTY", error: "Provider returned empty." };
   }
-  return { ok: true, rewrite: output };
+  return { ok: true, rewrite: output, usage: { inputTokens, outputTokens } };
 }
 
 function cleanModelOutput(content: string): string {

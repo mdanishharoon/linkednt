@@ -23,6 +23,7 @@
 
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { sha256Hex } from "../_shared/hash.ts";
+import { estimateCostUsdMicros } from "../_shared/pricing.ts";
 import { PROMPT_VERSION } from "../_shared/prompts.ts";
 import { runRewrite } from "../_shared/rewriter.ts";
 import { routeForMode } from "../_shared/routing.ts";
@@ -305,7 +306,27 @@ Deno.serve(async (req) => {
     output: result.rewrite,
   });
 
-  await debitOrTrack(admin, user.id, mode, cost, false, route, inputHash, ms);
+  // What WE paid the provider for this rewrite (input + output tokens across
+  // the initial call AND any strict retry), for the cost_daily rollup.
+  const costUsdMicros = estimateCostUsdMicros(
+    route.model,
+    result.usage.inputTokens,
+    result.usage.outputTokens,
+  );
+
+  await debitOrTrack(
+    admin,
+    user.id,
+    mode,
+    cost,
+    false,
+    route,
+    inputHash,
+    ms,
+    result.usage.inputTokens,
+    result.usage.outputTokens,
+    costUsdMicros,
+  );
 
   console.info(`${LOG} ok`, {
     mode,
@@ -362,6 +383,11 @@ async function debitOrTrack(
   route: { providerId: string; model: string },
   inputHash: string,
   ms: number,
+  // Token usage + our estimated provider cost. Default 0 for the cache-hit
+  // caller, where no provider call was made.
+  inputTokens = 0,
+  outputTokens = 0,
+  costUsdMicros = 0,
 ): Promise<void> {
   const { data: u } = await admin
     .from("users")
@@ -391,6 +417,9 @@ async function debitOrTrack(
     cache_hit: cacheHit,
     input_hash: inputHash,
     cost_credits: cost,
+    cost_usd_micros: costUsdMicros,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
     latency_ms: ms,
   });
 }

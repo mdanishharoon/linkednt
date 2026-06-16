@@ -55,6 +55,8 @@ export async function callOpenAICompatible(
     choices?: Array<{ message?: { content?: string } }>;
     error?: { message?: string };
     message?: string;
+    // OpenAI-compatible token accounting (Groq + OpenRouter both return it).
+    usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
   const data = (await response.json().catch(() => ({}))) as ChatResponse;
 
@@ -70,6 +72,10 @@ export async function callOpenAICompatible(
     ok: true,
     content: data.choices?.[0]?.message?.content ?? "",
     raw: data,
+    usage: {
+      inputTokens: data.usage?.prompt_tokens ?? 0,
+      outputTokens: data.usage?.completion_tokens ?? 0,
+    },
   };
 }
 
