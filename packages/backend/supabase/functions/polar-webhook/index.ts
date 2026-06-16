@@ -15,7 +15,7 @@
 //     ack'd with 200 so Polar stops retrying
 //
 // Env vars (set via `supabase secrets set`):
-//   - POLAR_WEBHOOK_SECRET           — live webhook signing secret (whsec_…)
+//   - POLAR_WEBHOOK_SECRET           — live webhook signing secret (polar_whs_…)
 //   - POLAR_SANDBOX_WEBHOOK_SECRET   — sandbox webhook signing secret (whsec_…)
 //
 // We verify against BOTH secrets and accept whichever matches. Reason:
@@ -78,13 +78,21 @@ function ack(body: string, status = 200): Response {
 // weaken security (an attacker still needs the secret).
 function secretKeyCandidates(secret: string): Uint8Array[] {
   const enc = new TextEncoder();
-  const candidates: Uint8Array[] = [enc.encode(secret)]; // raw full string ← Polar (sandbox)
-  const noPrefix = secret.startsWith("whsec_")
-    ? secret.slice("whsec_".length)
-    : secret;
+  const candidates: Uint8Array[] = [enc.encode(secret)]; // raw full string ← Polar (sandbox + prod)
+  // Polar prefixes the signing secret, and the prefix differs by source:
+  // sandbox secrets we supplied via the API use `whsec_`, while Polar-generated
+  // prod secrets use `polar_whs_`. Strip whichever is present so the
+  // prefix-stripped + base64 derivations below work for both.
+  let noPrefix = secret;
+  for (const prefix of ["whsec_", "polar_whs_"]) {
+    if (secret.startsWith(prefix)) {
+      noPrefix = secret.slice(prefix.length);
+      break;
+    }
+  }
   if (noPrefix !== secret) candidates.push(enc.encode(noPrefix)); // raw, prefix stripped
   try {
-    // Standard Webhooks: base64-decode the part after `whsec_`.
+    // Standard Webhooks: base64-decode the part after the prefix.
     const bin = atob(noPrefix);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
