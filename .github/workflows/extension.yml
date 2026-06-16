@@ -1,10 +1,19 @@
 name: Extension CI & Build
 
-# Type-checks, tests, and packages the browser extension into a downloadable
-# .zip artifact on every push/PR to the two long-lived branches. Mirrors
+# Type-checks, tests, and packages the browser extension, then publishes the
+# .zip as a rolling GitHub Release so both an "everything production" and an
+# "everything sandbox" build are always downloadable from the repo. Mirrors
 # landing.yml's branch -> environment binding:
-#   - main -> production env -> prod build    (chrome-mv3-prod.zip)
-#   - dev  -> sandbox env    -> sandbox build (chrome-mv3-development.zip)
+#   - main -> production env -> prod build    (chrome-mv3-prod.zip)        -> Release `extension-prod`    (marked Latest)
+#   - dev  -> sandbox env    -> sandbox build (chrome-mv3-development.zip) -> Release `extension-sandbox`  (prerelease)
+#
+# Each environment has ONE rolling release; the asset is replaced in place on
+# every push so the download link is stable. The prod release is always the
+# repo's "Latest"; the sandbox release is flagged prerelease so it never steals
+# that badge. To re-cut a release by hand (without a code change), use the
+# Actions tab -> "Run workflow" on the branch you want (main = prod, dev =
+# sandbox) — workflow_dispatch publishes too. PR runs build + test but never
+# publish.
 #
 # Config (Supabase URL/anon + site URL) is injected via PLASMO_PUBLIC_*, mapped
 # from the SAME per-environment GitHub Variables the landing uses (one source of
@@ -91,21 +100,36 @@ jobs:
       # GH_ADMIN_TOKEN fine-grained PAT lacks (it only carries Administration,
       # used by repo-admin.yml). PR runs still build above but don't publish.
       - name: Publish extension zip as a Release
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           LABEL='${{ steps.meta.outputs.label }}'
           TAG="extension-$LABEL"
           ZIP="$(ls packages/extension/build/*.zip | head -1)"
-          PRERELEASE=""
-          [ "$LABEL" = "sandbox" ] && PRERELEASE="--prerelease"
-          TITLE="linkedn't extension — $LABEL (latest)"
-          NOTES="Automated $LABEL build from commit ${{ github.sha }}. Download the .zip below — load unpacked via chrome://extensions, or submit to the store."
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" $PRERELEASE
+
+          # Prod is the canonical download (marked "Latest"); sandbox is a
+          # prerelease so it never steals the Latest badge. Flags are explicit
+          # booleans so re-running an edit always reasserts the right state.
+          if [ "$LABEL" = "prod" ]; then
+            FLAGS="--prerelease=false --latest=true"
+            TITLE="linkedn't extension — Production"
+            NOTES="**Everything-production build** — wired to the live backend (linkednt.com, prod Supabase + prod Polar). Built from commit \`${{ github.sha }}\`.
+
+          Install: download \`$(basename "$ZIP")\` below, unzip it, then in \`chrome://extensions\` enable Developer mode and \"Load unpacked\" the extracted folder."
           else
-            gh release create "$TAG" --title "$TITLE" --notes "$NOTES" $PRERELEASE --target "${{ github.sha }}"
+            FLAGS="--prerelease=true --latest=false"
+            TITLE="linkedn't extension — Sandbox (testing)"
+            NOTES="**Everything-sandbox build** — wired to the sandbox backend (dev.linkednt.com, sandbox Supabase + sandbox Polar) for safe testing; no real charges. Built from commit \`${{ github.sha }}\`.
+
+          Install: download \`$(basename "$ZIP")\` below, unzip it, then in \`chrome://extensions\` enable Developer mode and \"Load unpacked\" the extracted folder."
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" $FLAGS
+          else
+            gh release create "$TAG" --title "$TITLE" --notes "$NOTES" $FLAGS --target "${{ github.sha }}"
           fi
           gh release upload "$TAG" "$ZIP" --clobber
           echo "Published: $(gh release view "$TAG" --json url --jq .url)"

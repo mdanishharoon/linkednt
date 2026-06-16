@@ -27,7 +27,7 @@ on:
 
 # Required GitHub environments (Settings → Environments):
 #   production
-#     Vars:    SUPABASE_PROJECT_REF (=gmzisvcyvjrsjrovvysz)
+#     Vars:    SUPABASE_PROJECT_REF (=deagkfqvklpzewvlgorp)
 #     Secrets: SUPABASE_ACCESS_TOKEN (personal access token from
 #              supabase.com/dashboard/account/tokens; same token works
 #              across projects in the same org, but env-scope it so we

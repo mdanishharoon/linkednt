@@ -89,7 +89,7 @@ Repo → Settings → Environments. Create two if they don't both exist:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | prod anon key |
 | `NEXT_PUBLIC_POLAR_ENV` | `production` |
 | `NEXT_PUBLIC_SITE_URL` | `https://linkednt.com` |
-| `SUPABASE_PROJECT_REF` | `gmzisvcyvjrsjrovvysz` |
+| `SUPABASE_PROJECT_REF` | `deagkfqvklpzewvlgorp` |
 
 **Secrets**
 | Name | Value |
