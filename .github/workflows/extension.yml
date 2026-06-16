@@ -1,0 +1,135 @@
+name: Extension CI & Build
+
+# Type-checks, tests, and packages the browser extension, then publishes the
+# .zip as a rolling GitHub Release so both an "everything production" and an
+# "everything sandbox" build are always downloadable from the repo. Mirrors
+# landing.yml's branch -> environment binding:
+#   - main -> production env -> prod build    (chrome-mv3-prod.zip)        -> Release `extension-prod`    (marked Latest)
+#   - dev  -> sandbox env    -> sandbox build (chrome-mv3-development.zip) -> Release `extension-sandbox`  (prerelease)
+#
+# Each environment has ONE rolling release; the asset is replaced in place on
+# every push so the download link is stable. The prod release is always the
+# repo's "Latest"; the sandbox release is flagged prerelease so it never steals
+# that badge. To re-cut a release by hand (without a code change), use the
+# Actions tab -> "Run workflow" on the branch you want (main = prod, dev =
+# sandbox) — workflow_dispatch publishes too. PR runs build + test but never
+# publish.
+#
+# Config (Supabase URL/anon + site URL) is injected via PLASMO_PUBLIC_*, mapped
+# from the SAME per-environment GitHub Variables the landing uses (one source of
+# truth per env). The prod build also has hardcoded fallbacks in
+# src/lib/supabase-config.ts, so it stays byte-reproducible from committed code
+# without injecting anything; the SANDBOX build has no fallback, so it REQUIRES
+# the sandbox vars — hence they're only injected on the sandbox path.
+#
+# Required GitHub environment Variables (already set for the landing):
+#   production: NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY (prod), NEXT_PUBLIC_SITE_URL (=https://linkednt.com)
+#   sandbox:    NEXT_PUBLIC_SUPABASE_URL / _ANON_KEY (sandbox), NEXT_PUBLIC_SITE_URL (=https://dev.linkednt.com)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, dev]
+    paths:
+      - "packages/extension/**"
+      - ".github/workflows/extension.yml"
+      - "package.json"
+      - "bun.lock"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "packages/extension/**"
+      - ".github/workflows/extension.yml"
+      - "package.json"
+      - "bun.lock"
+
+jobs:
+  build:
+    name: Typecheck, test & package
+    runs-on: ubuntu-latest
+    # contents:write lets the built-in GITHUB_TOKEN publish the Release.
+    permissions:
+      contents: write
+    # On push use the branch's env; on PR use the base (target) branch's env.
+    environment: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && 'production' || 'sandbox' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - run: bun install --frozen-lockfile
+
+      - name: Typecheck extension
+        run: bun ext:typecheck
+
+      - name: Test extension
+        run: bun ext:test
+
+      # main -> production: prod build from committed config (no injection).
+      - name: Build & package (prod)
+        if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+        run: bun ext:package:prod
+
+      # dev -> sandbox: inject sandbox config (no sandbox fallback exists).
+      - name: Build & package (sandbox)
+        if: github.ref != 'refs/heads/main' && github.base_ref != 'main'
+        run: bun ext:package:dev
+        env:
+          PLASMO_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          PLASMO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          PLASMO_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+
+      - name: Resolve label
+        id: meta
+        run: echo "label=${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && 'prod' || 'sandbox' }}" >> "$GITHUB_OUTPUT"
+
+      # Publish the zip as a GitHub Release (surfaced on the repo's main page),
+      # not an ephemeral, hard-to-find Actions artifact. One rolling release per
+      # environment (tag `extension-sandbox` / `extension-prod`); the asset is
+      # replaced in place each push. Uses the built-in GITHUB_TOKEN with
+      # contents:write — releases are a Contents operation, which the
+      # GH_ADMIN_TOKEN fine-grained PAT lacks (it only carries Administration,
+      # used by repo-admin.yml). PR runs still build above but don't publish.
+      - name: Publish extension zip as a Release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          LABEL='${{ steps.meta.outputs.label }}'
+          TAG="extension-$LABEL"
+          ZIP="$(ls packages/extension/build/*.zip | head -1)"
+
+          # Prod is the canonical download (marked "Latest"); sandbox is a
+          # prerelease so it never steals the Latest badge. Flags are explicit
+          # booleans so re-running an edit always reasserts the right state.
+          if [ "$LABEL" = "prod" ]; then
+            FLAGS="--prerelease=false --latest=true"
+            TITLE="linkedn't extension — Production"
+            NOTES="**Everything-production build** — wired to the live backend (linkednt.com, prod Supabase + prod Polar). Built from commit \`${{ github.sha }}\`.
+
+          Install: download \`$(basename "$ZIP")\` below, unzip it, then in \`chrome://extensions\` enable Developer mode and \"Load unpacked\" the extracted folder."
+          else
+            FLAGS="--prerelease=true --latest=false"
+            TITLE="linkedn't extension — Sandbox (testing)"
+            NOTES="**Everything-sandbox build** — wired to the sandbox backend (dev.linkednt.com, sandbox Supabase + sandbox Polar) for safe testing; no real charges. Built from commit \`${{ github.sha }}\`.
+
+          Install: download \`$(basename "$ZIP")\` below, unzip it, then in \`chrome://extensions\` enable Developer mode and \"Load unpacked\" the extracted folder."
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" $FLAGS
+          else
+            gh release create "$TAG" --title "$TITLE" --notes "$NOTES" $FLAGS --target "${{ github.sha }}"
+          fi
+          gh release upload "$TAG" "$ZIP" --clobber
+          echo "Published: $(gh release view "$TAG" --json url --jq .url)"

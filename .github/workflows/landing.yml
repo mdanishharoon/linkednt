@@ -1,33 +1,62 @@
 name: Landing CI & Deploy
 
+# Dual-branch deploy.
+#
+# Two long-lived branches, two environments, one workflow:
+#   - main → linkednt.com (GitHub environment: production)
+#   - dev  → dev.linkednt.com (GitHub environment: sandbox)
+#
+# The job-level `environment:` expression evaluates per-run and pulls the
+# right vars/secrets from the matching GitHub environment. Branch ↔ env
+# binding lives ONLY in that ternary — there is no other place in the
+# pipeline that hardcodes "main" or "production." Add a new branch by
+# extending the expression.
+#
+# PRs to either branch deploy to a CF Pages preview URL using the base
+# branch's environment, so you can preview a sandbox-bound PR before
+# merging.
+
 on:
-  # Manual trigger from the Actions tab — useful for re-deploying without a
-  # code change, or for the first deploy when the path filter below skips
-  # the initial push.
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "packages/landing/**"
       - ".github/workflows/landing.yml"
       - "package.json"
       - "bun.lock"
   pull_request:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - "packages/landing/**"
       - ".github/workflows/landing.yml"
       - "package.json"
       - "bun.lock"
 
-# Required secrets (Settings → Secrets and variables → Actions):
-#   CLOUDFLARE_API_TOKEN  — Cloudflare API token with Pages:Edit permission
+# Required GitHub environments (Settings → Environments):
+#   production
+#     Vars:    NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+#              NEXT_PUBLIC_POLAR_ENV (=production), NEXT_PUBLIC_SITE_URL
+#              (=https://linkednt.com),
+#              NEXT_PUBLIC_POLAR_PRODUCT_{UNEMPLOYED,OPEN_TO_WORK,THOUGHT_LEADER}
+#              (production Polar product UUIDs),
+#              CLOUDFLARE_PROJECT_NAME (optional, defaults to `linkednt`)
+#     Secrets: (none specific to this env — shared CF token below)
+#   sandbox
+#     Vars:    NEXT_PUBLIC_SUPABASE_URL (sandbox project URL),
+#              NEXT_PUBLIC_SUPABASE_ANON_KEY (sandbox anon key),
+#              NEXT_PUBLIC_POLAR_ENV (=sandbox),
+#              NEXT_PUBLIC_SITE_URL (=https://dev.linkednt.com),
+#              NEXT_PUBLIC_POLAR_PRODUCT_{UNEMPLOYED,OPEN_TO_WORK,THOUGHT_LEADER}
+#              (sandbox Polar product UUIDs),
+#              CLOUDFLARE_PROJECT_NAME (=linkednt-dev — its own Pages project,
+#              production branch `dev`, custom domain dev.linkednt.com)
+#
+# Required repository-level secrets:
+#   CLOUDFLARE_API_TOKEN  — Pages:Edit permission, shared across envs
 #   CLOUDFLARE_ACCOUNT_ID — Cloudflare account ID
-# Required variables (Settings → Secrets and variables → Actions → Variables):
-#   NEXT_PUBLIC_SUPABASE_URL          — Supabase project URL
-#   NEXT_PUBLIC_SUPABASE_ANON_KEY     — Supabase publishable anon key
-# Optional secret:
-#   GH_ADMIN_TOKEN — PAT with `repo` admin scope for homepage update
+# Optional:
+#   GH_ADMIN_TOKEN — PAT with `repo` scope for homepage update on prod deploy
 
 env:
   CLOUDFLARE_PROJECT_NAME: linkednt
@@ -36,7 +65,9 @@ jobs:
   ci:
     name: Lint & Build
     runs-on: ubuntu-latest
-    environment: production
+    # On push, use the branch's env. On PR, use the base (target) branch's
+    # env so previews build against the realistic destination config.
+    environment: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && 'production' || 'sandbox' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -73,8 +104,11 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_POLAR_ENV: production
-          NEXT_PUBLIC_SITE_URL: https://linkednt.com
+          NEXT_PUBLIC_POLAR_ENV: ${{ vars.NEXT_PUBLIC_POLAR_ENV }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_POLAR_PRODUCT_UNEMPLOYED: ${{ vars.NEXT_PUBLIC_POLAR_PRODUCT_UNEMPLOYED }}
+          NEXT_PUBLIC_POLAR_PRODUCT_OPEN_TO_WORK: ${{ vars.NEXT_PUBLIC_POLAR_PRODUCT_OPEN_TO_WORK }}
+          NEXT_PUBLIC_POLAR_PRODUCT_THOUGHT_LEADER: ${{ vars.NEXT_PUBLIC_POLAR_PRODUCT_THOUGHT_LEADER }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -84,11 +118,11 @@ jobs:
           retention-days: 1
 
   deploy:
-    name: Deploy to Cloudflare Pages
+    name: Deploy
     needs: ci
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'sandbox' }}
     permissions:
       contents: read
       deployments: write
@@ -105,16 +139,26 @@ jobs:
         with:
           bun-version: latest
 
+      # A Cloudflare Pages custom domain can only point at a project's
+      # PRODUCTION branch — you can't bind a custom domain to a preview
+      # branch inside one project. So each environment uses its OWN Pages
+      # project, selected per-environment via vars.CLOUDFLARE_PROJECT_NAME
+      # (falls back to the repo default `linkednt` if unset):
+      #   production → project `linkednt`     (prod branch main → linkednt.com)
+      #   sandbox    → project `linkednt-dev` (prod branch dev  → dev.linkednt.com)
+      # Each project's production branch == its deploy branch, so --branch
+      # below produces a production deployment that the custom domain serves.
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         id: deploy
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy packages/landing/out --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=main --commit-dirty=true
+          command: pages deploy packages/landing/out --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.ref_name }} --commit-dirty=true
           packageManager: bun
 
       - name: Set repository homepage
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
         run: |
@@ -122,9 +166,9 @@ jobs:
             echo "::warning::GH_ADMIN_TOKEN not set — skipping homepage update."
             exit 0
           fi
-          DEPLOY_URL="${{ steps.deploy.outputs.deployment-url }}"
-          PAGES_URL="https://${{ env.CLOUDFLARE_PROJECT_NAME }}.pages.dev"
-          HOMEPAGE="${DEPLOY_URL:-$PAGES_URL}"
+          # Canonical custom domain, NOT the per-deploy *.pages.dev hash URL.
+          HOMEPAGE="${{ vars.NEXT_PUBLIC_SITE_URL }}"
+          HOMEPAGE="${HOMEPAGE:-https://${{ vars.CLOUDFLARE_PROJECT_NAME || env.CLOUDFLARE_PROJECT_NAME }}.pages.dev}"
           gh repo edit --homepage "$HOMEPAGE"
 
   deploy-preview:
@@ -132,6 +176,9 @@ jobs:
     needs: ci
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    # Preview build inherits the destination env so the PR shows what
+    # will land after merge.
+    environment: ${{ github.base_ref == 'main' && 'production' || 'sandbox' }}
     permissions:
       contents: read
       deployments: write
@@ -155,7 +202,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy packages/landing/out --project-name=${{ env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.head_ref }} --commit-dirty=true
+          command: pages deploy packages/landing/out --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || env.CLOUDFLARE_PROJECT_NAME }} --branch=${{ github.head_ref }} --commit-dirty=true
           packageManager: bun
 
       - name: Comment preview URL
@@ -163,8 +210,10 @@ jobs:
         with:
           script: |
             const url = `${{ steps.deploy.outputs.deployment-url }}`;
+            const target = `${{ github.base_ref }}`;
+            const targetEnv = target === 'main' ? 'production' : 'sandbox';
             const marker = '<!-- cf-pages-preview -->';
-            const body = `${marker}\nPreview deployed to: ${url}`;
+            const body = `${marker}\nPreview deployed to: ${url}\nBuilt with **${targetEnv}** env vars (target branch: \`${target}\`)`;
             const { data: comments } = await github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner: context.repo.owner,

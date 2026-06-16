@@ -9,11 +9,22 @@
     "typecheck": "bun --filter '*' typecheck",
     "test": "bun --filter '*' test",
     "ext:dev": "bun --filter '@linkednt/extension' dev",
-    "ext:build": "bun --filter '@linkednt/extension' build",
+    "ext:build:dev": "bun --filter '@linkednt/extension' build:dev",
+    "ext:build:prod": "bun --filter '@linkednt/extension' build:prod",
+    "ext:package:dev": "bun --filter '@linkednt/extension' package:dev",
+    "ext:package:prod": "bun --filter '@linkednt/extension' package:prod",
     "ext:typecheck": "bun --filter '@linkednt/extension' typecheck",
     "ext:test": "bun --filter '@linkednt/extension' test",
     "landing:dev": "bun --filter '@linkednt/landing' dev",
     "landing:build": "bun --filter '@linkednt/landing' build",
-    "landing:typecheck": "bun --filter '@linkednt/landing' typecheck"
+    "landing:start": "bun --filter '@linkednt/landing' start",
+    "landing:typecheck": "bun --filter '@linkednt/landing' typecheck",
+    "be:link": "bun --filter '@linkednt/backend' link",
+    "be:db:push": "bun --filter '@linkednt/backend' db:push",
+    "be:db:diff": "bun --filter '@linkednt/backend' db:diff",
+    "be:db:reset": "bun --filter '@linkednt/backend' db:reset",
+    "be:fn:serve": "bun --filter '@linkednt/backend' fn:serve",
+    "be:fn:deploy": "bun --filter '@linkednt/backend' fn:deploy",
+    "be:secrets": "bun --filter '@linkednt/backend' secrets:list"
   }
 }

@@ -1,9 +1,11 @@
 import { sendToBackground } from "@plasmohq/messaging";
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 
+import { SandboxBadge } from "~components/SandboxBadge";
 import { isCustomProviderId, newCustomProviderId } from "~lib/providers/custom";
 import { listAllProviders, listProviders } from "~lib/providers/registry";
 import type { CustomProvider } from "~lib/providers/types";
+import { SITE_URL } from "~lib/supabase-config";
 import {
   addCustomProvider,
   getSettings,
@@ -1044,10 +1046,12 @@ function CreditsBlock({
 
   // Pricing page on the landing knows how to take the user_id from the query
   // string and forward it into the Polar checkout metadata. Falls back to
-  // the bare pricing URL if we somehow don't have a user id yet.
+  // the bare pricing URL if we somehow don't have a user id yet. SITE_URL is
+  // env-driven (PLASMO_PUBLIC_SITE_URL) so a sandbox build sends the user to
+  // the sandbox landing + sandbox checkout, not prod.
   const pricingUrl = userId
-    ? `https://linkednt.com/pricing?user_id=${encodeURIComponent(userId)}`
-    : "https://linkednt.com/pricing";
+    ? `${SITE_URL}/pricing?user_id=${encodeURIComponent(userId)}`
+    : `${SITE_URL}/pricing`;
 
   return (
     <div className="credits-block">
@@ -1130,4 +1134,11 @@ function CustomDraftForm(props: {
   );
 }
 
-export default Popup;
+export default function PopupRoot() {
+  return (
+    <>
+      <Popup />
+      <SandboxBadge />
+    </>
+  );
+}

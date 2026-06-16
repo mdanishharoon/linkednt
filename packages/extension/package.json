@@ -5,8 +5,10 @@
   "description": "Unslop your LinkedIn feed. Rewrites posts into plain English, a dry translation, or the author's internal monologue.",
   "scripts": {
     "dev": "plasmo dev",
-    "build": "plasmo build",
-    "package": "plasmo package",
+    "build:dev": "plasmo build --tag=development",
+    "build:prod": "plasmo build",
+    "package:dev": "plasmo build --tag=development && plasmo package --tag=development",
+    "package:prod": "plasmo build && plasmo package",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --reporter=dot --passWithNoTests",
     "test:coverage": "vitest run --coverage --passWithNoTests",
@@ -50,7 +52,6 @@
     ],
     "permissions": [
       "storage",
-      "alarms",
       "identity"
     ]
   },

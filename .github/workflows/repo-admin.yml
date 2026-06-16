@@ -1,0 +1,57 @@
+name: Repo admin (manual)
+
+# Manual, on-demand admin tasks that need repo-admin rights (deleting
+# environments, editing repo metadata) which the default GITHUB_TOKEN and most
+# contributors' tokens don't have. Runs with GH_ADMIN_TOKEN (a PAT with repo
+# scope owned by an admin). Trigger from the Actions tab → "Run workflow", or
+# `gh workflow run repo-admin.yml --ref <branch>`.
+
+on:
+  # workflow_dispatch only registers from the default branch; also run on push
+  # when this file changes so it can self-execute from any branch (e.g. dev).
+  push:
+    paths:
+      - ".github/workflows/repo-admin.yml"
+  workflow_dispatch:
+    inputs:
+      delete_preview_env:
+        description: "Delete the stale 'Preview' environment"
+        type: boolean
+        default: true
+      set_homepage:
+        description: "Set the repo homepage to the canonical domain"
+        type: boolean
+        default: true
+
+jobs:
+  admin:
+    name: Admin maintenance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run admin tasks
+        env:
+          GH_TOKEN: ${{ secrets.GH_ADMIN_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GH_ADMIN_TOKEN not set — cannot run admin tasks."
+            exit 1
+          fi
+
+          # On push there are no inputs (empty) — default to running both tasks.
+          # On manual dispatch, honour the false toggles.
+          if [ "${{ inputs.delete_preview_env }}" != "false" ]; then
+            if gh api -X DELETE "repos/$REPO/environments/Preview"; then
+              echo "✓ deleted 'Preview' environment"
+            else
+              echo "‘Preview’ environment not found (already deleted) — skipping"
+            fi
+          fi
+
+          if [ "${{ inputs.set_homepage }}" != "false" ]; then
+            gh repo edit "$REPO" --homepage "https://linkednt.com"
+            echo "✓ homepage → https://linkednt.com"
+          fi
+
+          echo "--- remaining environments ---"
+          gh api "repos/$REPO/environments" --jq '.environments[].name' || true

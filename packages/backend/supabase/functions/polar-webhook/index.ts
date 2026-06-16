@@ -7,14 +7,16 @@
 //
 // Security:
 //   - verify_jwt is disabled in deploy (this is a public webhook endpoint)
-//   - HMAC signature verified against POLAR_WEBHOOK_SECRET; mismatch → 401
-//   - idempotency via processed_webhooks (webhook_id is Polar's event id)
+//   - Standard Webhooks signature (HMAC-SHA256 over
+//     `{webhook-id}.{webhook-timestamp}.{body}`, base64) verified against the
+//     signing secret; mismatch → 401. See verifySignature below.
+//   - idempotency via processed_webhooks (webhook_id is Polar's order id)
 //   - we only act on event.type in HANDLED_EVENT_TYPES; everything else is
 //     ack'd with 200 so Polar stops retrying
 //
 // Env vars (set via `supabase secrets set`):
-//   - POLAR_WEBHOOK_SECRET           — live webhook signing secret
-//   - POLAR_SANDBOX_WEBHOOK_SECRET   — sandbox webhook signing secret
+//   - POLAR_WEBHOOK_SECRET           — live webhook signing secret (polar_whs_…)
+//   - POLAR_SANDBOX_WEBHOOK_SECRET   — sandbox webhook signing secret (whsec_…)
 //
 // We verify against BOTH secrets and accept whichever matches. Reason:
 // if you keep webhook endpoints configured in both the live AND sandbox
@@ -64,36 +66,83 @@ function ack(body: string, status = 200): Response {
   });
 }
 
+// Candidate HMAC keys derived from the signing secret. Polar's signature is
+// HMAC-SHA256 over `{webhook-id}.{webhook-timestamp}.{body}`, base64-encoded —
+// but how it derives the *key* from the secret depends on how the secret was
+// created. Empirically (sandbox, secret supplied via the API), Polar keys the
+// HMAC on the FULL secret string as raw UTF-8 bytes — INCLUDING the `whsec_`
+// prefix — NOT the Standard Webhooks convention (strip `whsec_`, base64-decode
+// the rest). To stay correct across both — custom-supplied secrets and
+// dashboard-generated ones — we try every reasonable derivation and accept the
+// signature if ANY matches. All are over the same secret, so this doesn't
+// weaken security (an attacker still needs the secret).
+function secretKeyCandidates(secret: string): Uint8Array[] {
+  const enc = new TextEncoder();
+  const candidates: Uint8Array[] = [enc.encode(secret)]; // raw full string ← Polar (sandbox + prod)
+  // Polar prefixes the signing secret, and the prefix differs by source:
+  // sandbox secrets we supplied via the API use `whsec_`, while Polar-generated
+  // prod secrets use `polar_whs_`. Strip whichever is present so the
+  // prefix-stripped + base64 derivations below work for both.
+  let noPrefix = secret;
+  for (const prefix of ["whsec_", "polar_whs_"]) {
+    if (secret.startsWith(prefix)) {
+      noPrefix = secret.slice(prefix.length);
+      break;
+    }
+  }
+  if (noPrefix !== secret) candidates.push(enc.encode(noPrefix)); // raw, prefix stripped
+  try {
+    // Standard Webhooks: base64-decode the part after the prefix.
+    const bin = atob(noPrefix);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    candidates.push(bytes);
+  } catch {
+    // noPrefix wasn't valid base64 — skip that derivation.
+  }
+  return candidates;
+}
+
+// The HMAC-SHA256 is over `{webhook-id}.{webhook-timestamp}.{body}` and the
+// `webhook-signature` header is a space-separated list of `v1,<base64sig>`
+// entries. Accept if any signature matches any key derivation.
+//
+// We deliberately do NOT enforce a timestamp tolerance: Polar reuses the
+// original id/timestamp/signature when retrying a failed delivery, which can
+// arrive hours later, and `processed_webhooks` already gives us replay +
+// duplicate protection.
 async function verifySignature(
+  id: string,
+  timestamp: string,
   body: string,
-  signature: string | null,
+  signatureHeader: string | null,
   secret: string,
 ): Promise<boolean> {
-  if (!signature || !secret) return false;
+  if (!signatureHeader || !secret || !id || !timestamp) return false;
 
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const computed = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(body),
-  );
-  const computedHex = Array.from(new Uint8Array(computed))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const provided = signatureHeader
+    .split(" ")
+    .filter((p) => p.startsWith("v1,"))
+    .map((p) => p.slice("v1,".length));
+  if (provided.length === 0) return false;
 
-  // Polar's webhook-signature header can be either the raw hex digest or a
-  // prefixed format. Accept both.
-  const provided = signature
-    .replace(/^sha256=/, "")
-    .trim()
-    .toLowerCase();
-  return timingSafeEqual(computedHex, provided);
+  const signed = new TextEncoder().encode(`${id}.${timestamp}.${body}`);
+
+  for (const keyBytes of secretKeyCandidates(secret)) {
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyBytes,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"],
+    );
+    const computed = await crypto.subtle.sign("HMAC", key, signed);
+    const expected = btoa(String.fromCharCode(...new Uint8Array(computed)));
+    for (const sig of provided) {
+      if (timingSafeEqual(sig, expected)) return true;
+    }
+  }
+  return false;
 }
 
 function timingSafeEqual(a: string, b: string): boolean {
@@ -118,21 +167,28 @@ Deno.serve(async (req) => {
   }
 
   const body = await req.text();
+  // Standard Webhooks headers. `webhook-id` here is the delivery id (part of
+  // the signed payload) — distinct from the order id we use for idempotency.
   const sig =
     req.headers.get("webhook-signature") ??
     req.headers.get("polar-webhook-signature") ??
     req.headers.get("x-polar-signature");
+  const deliveryId = req.headers.get("webhook-id") ?? "";
+  const timestamp = req.headers.get("webhook-timestamp") ?? "";
 
   // Try both secrets; accept whichever validates. Lets live + sandbox
   // webhooks share one endpoint without flipping anything.
   let verified = false;
   let matchedEnv: "live" | "sandbox" | null = null;
-  if (liveSecret && (await verifySignature(body, sig, liveSecret))) {
+  if (
+    liveSecret &&
+    (await verifySignature(deliveryId, timestamp, body, sig, liveSecret))
+  ) {
     verified = true;
     matchedEnv = "live";
   } else if (
     sandboxSecret &&
-    (await verifySignature(body, sig, sandboxSecret))
+    (await verifySignature(deliveryId, timestamp, body, sig, sandboxSecret))
   ) {
     verified = true;
     matchedEnv = "sandbox";
@@ -140,6 +196,8 @@ Deno.serve(async (req) => {
   if (!verified) {
     console.warn(`${LOG} signature mismatch`, {
       hasSig: !!sig,
+      hasId: !!deliveryId,
+      hasTs: !!timestamp,
       hasLive: !!liveSecret,
       hasSandbox: !!sandboxSecret,
     });

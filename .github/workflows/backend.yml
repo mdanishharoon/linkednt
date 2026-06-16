@@ -1,0 +1,135 @@
+name: Backend CI & Deploy
+
+# Pairs with landing.yml. Push to a long-lived branch deploys the
+# Supabase backend (migrations + edge functions) to the matching project:
+#   main → production Supabase project
+#   dev  → sandbox  Supabase project
+#
+# Same branch ↔ env mapping rule as landing.yml. PRs only typecheck;
+# nothing deploys until the merge lands on the long-lived branch.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, dev]
+    paths:
+      - "packages/backend/**"
+      - ".github/workflows/backend.yml"
+      - "package.json"
+      - "bun.lock"
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - "packages/backend/**"
+      - ".github/workflows/backend.yml"
+      - "package.json"
+      - "bun.lock"
+
+# Required GitHub environments (Settings → Environments):
+#   production
+#     Vars:    SUPABASE_PROJECT_REF (=deagkfqvklpzewvlgorp)
+#     Secrets: SUPABASE_ACCESS_TOKEN (personal access token from
+#              supabase.com/dashboard/account/tokens; same token works
+#              across projects in the same org, but env-scope it so we
+#              never accidentally use a prod-bound token from a sandbox
+#              workflow run)
+#   sandbox
+#     Vars:    SUPABASE_PROJECT_REF (sandbox project ref)
+#     Secrets: SUPABASE_ACCESS_TOKEN
+
+jobs:
+  typecheck:
+    name: Typecheck shared backend code
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v1.x
+
+      # Deno's typecheck is the canonical check for edge functions —
+      # `deno check` mirrors what Supabase runs at deploy time. If it
+      # passes here, the deploy step on the target branch won't surprise
+      # us with a type error.
+      - name: Typecheck edge functions
+        run: |
+          set -e
+          for fn in packages/backend/supabase/functions/*/index.ts; do
+            echo "::group::deno check $fn"
+            deno check "$fn"
+            echo "::endgroup::"
+          done
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'sandbox' }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Skip the entire deploy if the target env hasn't been provisioned
+      # yet. Lets pushes to dev succeed before the sandbox Supabase
+      # project exists — the first push AFTER you create the project +
+      # set the secrets deploys cleanly. Until then this exits 0 with a
+      # warning instead of failing the whole run.
+      - name: Check env provisioned
+        id: check
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
+            echo "::warning::SUPABASE_ACCESS_TOKEN or SUPABASE_PROJECT_REF unset — skipping backend deploy (see docs/CICD-SETUP.md)."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install Supabase CLI
+        if: steps.check.outputs.skip == 'false'
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # `supabase link` binds the working dir to the project so
+      # subsequent commands don't need explicit refs. We don't have the
+      # DB password in CI; the management API just uses the access
+      # token, and migrations through the platform pooler don't need
+      # the DB password either — link prompts for it interactively but
+      # accepts an empty value when run non-interactively.
+      - name: Link project
+        if: steps.check.outputs.skip == 'false'
+        working-directory: packages/backend
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      # All migrations are idempotent (create or replace, if not
+      # exists) so re-applying past ones is a no-op. --include-all
+      # makes the CLI apply everything in supabase/migrations/ that
+      # the remote hasn't seen.
+      - name: Push migrations
+        if: steps.check.outputs.skip == 'false'
+        working-directory: packages/backend
+        run: supabase db push --include-all
+
+      # verify_jwt per function matches the existing prod config:
+      #   - rewrite:               JWT required (proxy users sign in)
+      #   - create-polar-checkout: anonymous (public buy button)
+      #   - polar-webhook:         anonymous (Polar can't carry a JWT)
+      - name: Deploy rewrite function
+        if: steps.check.outputs.skip == 'false'
+        working-directory: packages/backend
+        run: supabase functions deploy rewrite
+
+      - name: Deploy create-polar-checkout function
+        if: steps.check.outputs.skip == 'false'
+        working-directory: packages/backend
+        run: supabase functions deploy create-polar-checkout --no-verify-jwt
+
+      - name: Deploy polar-webhook function
+        if: steps.check.outputs.skip == 'false'
+        working-directory: packages/backend
+        run: supabase functions deploy polar-webhook --no-verify-jwt
