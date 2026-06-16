@@ -83,5 +83,15 @@ export async function callProxyRewrite(
       error: `Proxy returned ${response.status}.`,
     };
   }
+  // A post-fetch 401 means the server rejected a JWT we DID send — i.e. the
+  // session expired mid-use (the no-session case returns early above). Rewrite
+  // the server's terse "Invalid session." into actionable copy.
+  if (!data.ok && data.code === "UNAUTHORIZED") {
+    return {
+      ok: false,
+      code: "UNAUTHORIZED",
+      error: "Your session expired — open linkedn't and sign in again.",
+    };
+  }
   return data;
 }

@@ -28,6 +28,7 @@ import {
   showToast,
   teardownAllCards,
 } from "~lib/overlay";
+import { userFacingError } from "~lib/errors";
 import { getSettings, onSettingsChange } from "~lib/storage";
 import type {
   Mode,
@@ -515,7 +516,7 @@ async function deslopPost(post: HTMLElement, button: HTMLButtonElement) {
         ms,
       });
       const errCard = createErrorCard(
-        response.error,
+        userFacingError(response.code, response.error),
         ctx,
         response.code,
         () => {

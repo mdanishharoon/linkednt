@@ -69,13 +69,13 @@ export async function fetchAccountStatus(): Promise<AccountStatusResult> {
       return {
         ok: false,
         code: "UNAUTHORIZED",
-        error: `Account status returned ${res.status}.`,
+        error: "Your session expired — sign in again.",
       };
     }
     return {
       ok: false,
       code: "HTTP",
-      error: `Account status returned ${res.status}.`,
+      error: "Couldn't load your account — try again shortly.",
     };
   }
 
@@ -88,7 +88,11 @@ export async function fetchAccountStatus(): Promise<AccountStatusResult> {
   } | null;
 
   if (!data) {
-    return { ok: false, code: "HTTP", error: "Empty account status body." };
+    return {
+      ok: false,
+      code: "HTTP",
+      error: "Couldn't load your account — try again shortly.",
+    };
   }
 
   const status: AccountStatus = {

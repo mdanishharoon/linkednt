@@ -2,6 +2,7 @@ import { sendToBackground } from "@plasmohq/messaging";
 import { Fragment, useEffect, useId, useRef, useState } from "react";
 
 import { SandboxBadge } from "~components/SandboxBadge";
+import { userFacingError } from "~lib/errors";
 import { isCustomProviderId, newCustomProviderId } from "~lib/providers/custom";
 import { listAllProviders, listProviders } from "~lib/providers/registry";
 import type { CustomProvider } from "~lib/providers/types";
@@ -218,7 +219,7 @@ function Popup() {
         setView("home");
         console.info(`${LOG} signed in`, { userId: result.user.id });
       } else if (result.code !== "USER_CANCELLED") {
-        setAuthError(result.error);
+        setAuthError(userFacingError(result.code, result.error));
         console.warn(`${LOG} sign in failed`, result);
       }
     } finally {
