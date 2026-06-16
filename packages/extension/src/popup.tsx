@@ -623,6 +623,15 @@ function Popup() {
                 </button>
                 {isCustom && activeCustom && (
                   <button
+                    className="text-button"
+                    type="button"
+                    onClick={() => setEditingCustom({ ...activeCustom })}
+                  >
+                    Edit endpoint
+                  </button>
+                )}
+                {isCustom && activeCustom && (
+                  <button
                     className="text-button danger"
                     type="button"
                     onClick={() => void deleteCustomProvider(activeCustom.id)}
