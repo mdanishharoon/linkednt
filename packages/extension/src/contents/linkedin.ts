@@ -449,6 +449,15 @@ function createButton(post: HTMLElement): HTMLButtonElement {
 }
 
 async function deslopPost(post: HTMLElement, button: HTMLButtonElement) {
+  // If the extension reloaded/updated under this tab, the runtime bridge is
+  // already dead and any rewrite request would throw "Extension context
+  // invalidated". Don't even show the loading flash — turn this button into a
+  // one-click page refresh (the only real fix) and bail.
+  if (isContextInvalidated()) {
+    markButtonNeedsRefresh(button);
+    return;
+  }
+
   const mode: Mode = settings?.mode ?? "strip";
 
   // If a card already exists for this post, just re-show it (cheap toggle path
@@ -550,6 +559,27 @@ async function deslopPost(post: HTMLElement, button: HTMLButtonElement) {
       loadingCard.replaceWith(createResultCard(response.rewrite, ctx));
     }
   } catch (err) {
+    // Extension was reloaded/updated/disabled while this tab stayed open: the
+    // content script's runtime bridge is dead, so sendToBackground throws
+    // "Extension context invalidated". This is expected, not a crash — there's
+    // nothing to retry against the old context, the page just needs a refresh.
+    // Keep it out of the Errors panel and show a calm "refresh" card whose
+    // retry button reloads the page (which is the actual fix).
+    if (isContextInvalidated(err)) {
+      warn("extension context invalidated — page needs a refresh", {
+        message: err instanceof Error ? err.message : String(err),
+      });
+      const staleCard = createErrorCard(
+        "linkedn’t just updated in the background. Refresh the page to keep deslopping.",
+        ctx,
+        "CONTEXT_INVALIDATED",
+        () => location.reload(),
+      );
+      loadingCard.replaceWith(staleCard);
+      markButtonNeedsRefresh(button);
+      return;
+    }
+
     stats.rewriteErrors += 1;
     stats.lastError = err instanceof Error ? err.message : String(err);
     error("rewrite threw", err);
@@ -570,6 +600,47 @@ async function deslopPost(post: HTMLElement, button: HTMLButtonElement) {
     button.disabled = false;
     button.classList.remove("lo-loading");
   }
+}
+
+/**
+ * True when an error is the Chrome "Extension context invalidated" failure —
+ * raised when the extension is reloaded/updated/disabled while this content
+ * script keeps running on an already-open tab. The old script's chrome.runtime
+ * bridge is dead, so any sendToBackground call throws. Not a bug: the tab just
+ * needs a refresh to pick up the new extension context.
+ */
+function isContextInvalidated(err?: unknown): boolean {
+  // When the context is gone, chrome.runtime.id flips to undefined — the most
+  // reliable signal, since the thrown message text isn't a stable contract.
+  // Called with no error (pre-flight check) it relies solely on that signal.
+  if (!chrome.runtime?.id) return true;
+  if (err === undefined) return false;
+  const message = err instanceof Error ? err.message : String(err);
+  return message.includes("Extension context invalidated");
+}
+
+/**
+ * Converts a Deslop button into a one-click page-refresh affordance, used when
+ * the extension context is dead. Idempotent: a second call (or a stray click on
+ * the original deslopPost listener, which now no-ops) won't stack listeners.
+ */
+function markButtonNeedsRefresh(button: HTMLButtonElement): void {
+  if (button.dataset.loStale === "true") return;
+  button.dataset.loStale = "true";
+  button.disabled = false;
+  button.classList.remove("lo-loading");
+  button.classList.add("lo-stale");
+  button.title =
+    "linkedn’t updated in the background — click to refresh the page";
+
+  const icon = document.createElement("span");
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "↻";
+  const label = document.createElement("span");
+  label.textContent = "Refresh";
+  button.replaceChildren(icon, label);
+
+  button.addEventListener("click", () => location.reload(), { once: true });
 }
 
 function warnOnce(

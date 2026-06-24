@@ -67,6 +67,22 @@
   animation: lo-spin 900ms linear infinite;
 }
 
+/* Shown when the extension reloaded under an open tab: the button becomes a
+   one-click page refresh instead of a dead Deslop action. */
+.lo-stale {
+  color: #b54708;
+}
+
+.lo-stale:hover {
+  color: #b54708;
+  background: rgba(181, 71, 8, 0.08);
+}
+
+.lo-stale > span:first-child {
+  background: #fef0c7;
+  color: #b54708;
+}
+
 /* ============================================================================
    Rewrite card (inserted as sibling of the post text container)
    ============================================================================ */

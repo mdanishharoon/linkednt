@@ -1,7 +1,7 @@
 {
   "name": "@linkednt/extension",
   "displayName": "linkedn't",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Unslop your LinkedIn feed. Rewrites posts into plain English, a dry translation, or the author's internal monologue.",
   "scripts": {
     "dev": "plasmo dev",
