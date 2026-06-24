@@ -29,6 +29,7 @@ import {
   teardownAllCards,
 } from "~lib/overlay";
 import { getSettings, onSettingsChange } from "~lib/storage";
+import { IS_PRODUCTION } from "~lib/supabase-config";
 import type {
   Mode,
   RewriteRequest,
@@ -41,6 +42,15 @@ import "./linkedin.css";
 export const config: PlasmoCSConfig = {
   matches: ["https://www.linkedin.com/*"],
 };
+
+// In production we run quietly: the content script intentionally scans every
+// linkedin.com page (homepage, jobs, messaging…), most of which have no feed
+// posts, so "no posts matched" / "0 injections" are EXPECTED, not failures.
+// Logging them at warn/error level dumps them into the chrome://extensions
+// Errors panel and makes a working extension look broken. In prod, info/warn
+// route to console.debug (never surfaced in the Errors panel) and the heavy
+// auto-diagnostic is disabled. Dev/sandbox builds stay fully verbose.
+const DEBUG = !IS_PRODUCTION;
 
 const LOG = "[linkednt:cs]";
 const PROCESSED_ATTR = "data-linkedout-processed";
@@ -208,16 +218,19 @@ function start() {
     }
   }, 20000);
 
-  // Automatic diagnostic at 8s if still no injections
-  window.setTimeout(() => {
-    if (totalInjected === 0 && !diagnosticRan) {
-      warn(
-        "8s after observer attach, still 0 injections — running full diagnostic",
-      );
-      diagnosticRan = true;
-      runFullDiagnostic();
-    }
-  }, 8000);
+  // Automatic diagnostic at 8s if still no injections. Dev/sandbox only — in
+  // prod this fires on every non-feed page and dumps a large JSON blob.
+  if (DEBUG) {
+    window.setTimeout(() => {
+      if (totalInjected === 0 && !diagnosticRan) {
+        warn(
+          "8s after observer attach, still 0 injections — running full diagnostic",
+        );
+        diagnosticRan = true;
+        runFullDiagnostic();
+      }
+    }, 8000);
+  }
 }
 
 function attachSettingsListener() {
@@ -404,6 +417,7 @@ function injectButtons() {
 }
 
 function scheduleDiagnostic() {
+  if (!DEBUG) return;
   if (diagnosticRan) return;
   if (diagnosticTimer !== undefined) return;
   // 2s grace period: feed may still be loading
@@ -509,7 +523,8 @@ async function deslopPost(post: HTMLElement, button: HTMLButtonElement) {
     if (!response.ok) {
       stats.rewriteErrors += 1;
       stats.lastError = `${response.code}: ${response.error}`;
-      error("rewrite error", {
+      // Handled outcome (known error code, shown in the card) — not a crash.
+      warn("rewrite error", {
         code: response.code,
         error: response.error,
         ms,
@@ -564,17 +579,22 @@ function warnOnce(
 ) {
   if (warned.has(post)) return;
   warned.add(post);
-  console.warn(`${LOG} ${message}`, details);
+  warn(message, details);
 }
 
 function info(message: string, details: Record<string, unknown> = {}) {
-  console.info(`${LOG} ${message}`, details);
+  // console.debug in prod: keeps routine logs out of the Errors panel.
+  (DEBUG ? console.info : console.debug)(`${LOG} ${message}`, details);
 }
 
 function warn(message: string, details: Record<string, unknown> = {}) {
-  console.warn(`${LOG} ${message}`, details);
+  // These are expected-state warnings (no posts on this page, text too short,
+  // etc.) — never real errors. In prod they go to console.debug so they don't
+  // pollute the chrome://extensions Errors panel.
+  (DEBUG ? console.warn : console.debug)(`${LOG} ${message}`, details);
 }
 
+// Genuine unexpected failures only — always surfaced.
 function error(message: string, err: unknown) {
   console.error(`${LOG} ${message}`, err);
 }

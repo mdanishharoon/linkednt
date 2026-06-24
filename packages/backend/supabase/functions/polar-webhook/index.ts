@@ -244,51 +244,58 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
-  // Idempotency: if we've already processed this webhook id, ack and return.
-  const existing = await admin
-    .from("processed_webhooks")
-    .select("webhook_id")
-    .eq("webhook_id", webhookId)
-    .maybeSingle();
-  if (existing.data) {
-    console.info(`${LOG} duplicate, ignoring`, { webhookId });
-    return ack("already processed", 200);
+  const customerEmail = event.data.customer?.email ?? null;
+
+  // Single atomic, self-healing grant. grant_purchase_credits() runs in one
+  // transaction: idempotency check, missing-user backfill from auth.users,
+  // ledger insert, processed_webhooks mark, and plan flip. Replaces the prior
+  // four separate writes whose ledger INSERT could FK-fail and lose the order.
+  const { data: result, error: grantError } = await admin.rpc(
+    "grant_purchase_credits",
+    {
+      p_order_id: webhookId,
+      p_user_id: userId,
+      p_credits: credits,
+      p_email: customerEmail,
+    },
+  );
+
+  if (grantError) {
+    // A paid order must NEVER be silently lost. Record it to the dead-letter
+    // table for reconciliation, whatever the cause. Best-effort: even if this
+    // insert fails, the error is logged and Polar still has the event.
+    const msg = grantError.message ?? String(grantError);
+    console.error(`${LOG} grant failed`, { webhookId, userId, credits, msg });
+    const dead = await admin.from("failed_grants").insert({
+      order_id: webhookId,
+      user_id: userId,
+      credits,
+      reason: msg,
+      payload: event.data,
+    });
+    if (dead.error) {
+      console.error(`${LOG} failed_grants insert ALSO failed`, dead.error);
+    }
+
+    // Permanent failures (misrouted/unknown user, constraint violations) won't
+    // recover on retry — ack 200 so Polar stops hammering; reconcile from
+    // failed_grants. Transient failures (timeouts, 5xx) → 500 so Polar retries.
+    const permanent =
+      /AUTH_USER_NOT_FOUND|INVALID_ARGS|foreign key|violates|duplicate key/i.test(
+        msg,
+      );
+    return ack(
+      permanent ? "recorded for reconciliation" : "transient failure, retry",
+      permanent ? 200 : 500,
+    );
   }
 
-  // Insert the credit grant + mark the webhook processed. Done as two
-  // separate inserts because credits_ledger has a BEFORE-UPDATE/DELETE
-  // trigger that doesn't play nicely with INSERT ... RETURNING in a
-  // multi-statement transaction via PostgREST. Worst case if the second
-  // insert fails: the user gets credited but we'll re-process the webhook
-  // on retry, then the duplicate insert into processed_webhooks fails.
-  // Acceptable for MVP — Polar retries are infrequent.
-  const ledger = await admin.from("credits_ledger").insert({
-    user_id: userId,
-    delta: credits,
-    reason: "purchase",
-    ref_id: webhookId,
+  console.info(`${LOG} credited`, {
+    webhookId,
+    userId,
+    credits,
+    matchedEnv,
+    result,
   });
-  if (ledger.error) {
-    console.error(`${LOG} ledger insert failed`, ledger.error);
-    return ack("Ledger insert failed", 500);
-  }
-
-  const mark = await admin
-    .from("processed_webhooks")
-    .insert({ webhook_id: webhookId });
-  if (mark.error) {
-    console.error(`${LOG} processed_webhooks insert failed`, mark.error);
-    // Don't 500 — the credit went through. Polar will retry and we'll
-    // double-process. Better to ack now and reconcile manually.
-  }
-
-  // Flip the user's plan to 'paid' on their first purchase. Idempotent.
-  await admin
-    .from("users")
-    .update({ plan: "paid" })
-    .eq("id", userId)
-    .neq("plan", "paid");
-
-  console.info(`${LOG} credited`, { webhookId, userId, credits, matchedEnv });
   return ack("ok", 200);
 });

@@ -24,8 +24,8 @@
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { sha256Hex } from "../_shared/hash.ts";
 import { PROMPT_VERSION } from "../_shared/prompts.ts";
-import { runRewrite } from "../_shared/rewriter.ts";
-import { routeForMode } from "../_shared/routing.ts";
+import { type RewriteCallResult, runRewrite } from "../_shared/rewriter.ts";
+import { fallbackForMode, routeForMode } from "../_shared/routing.ts";
 import type {
   Mode,
   RewriteErrorCode,
@@ -253,22 +253,54 @@ Deno.serve(async (req) => {
     }
   }
 
-  // ---- provider call ----
-  const apiKey = Deno.env.get(route.apiKeyEnv);
-  if (!apiKey) {
-    console.error(`${LOG} missing env`, { env: route.apiKeyEnv });
+  // ---- provider call (primary, then fallback on failure) ----
+  // Try the primary route; if it fails for ANY reason (OpenRouter out of
+  // balance, rate-limited, down…), fall through to the mode's fallback route
+  // so a paid user still gets a result instead of a hard error. usedRoute
+  // tracks which provider actually produced the output so cache + usage_log
+  // record the real model.
+  const attempts = [route];
+  const fb = fallbackForMode(mode);
+  if (fb) attempts.push(fb);
+
+  let result: RewriteCallResult | undefined;
+  let usedRoute = route;
+  let ms = 0;
+  for (let i = 0; i < attempts.length; i++) {
+    const attempt = attempts[i];
+    const apiKey = Deno.env.get(attempt.apiKeyEnv);
+    if (!apiKey) {
+      console.error(`${LOG} missing env`, { env: attempt.apiKeyEnv });
+      continue; // can't run this attempt — try the next one
+    }
+    const startedAt = performance.now();
+    const r = await runRewrite({
+      text,
+      mode,
+      providerId: attempt.providerId,
+      apiKey,
+      model: attempt.model,
+    });
+    ms = Math.round(performance.now() - startedAt);
+    result = r;
+    usedRoute = attempt;
+    if (r.ok) break;
+    const more = i < attempts.length - 1;
+    console.warn(`${LOG} provider call failed`, {
+      provider: attempt.providerId,
+      model: attempt.model,
+      code: r.code,
+      fallback: i > 0,
+      willRetry: more,
+    });
+  }
+
+  // No attempt could even run (all keys missing).
+  if (!result) {
     return err("HTTP", "Server misconfigured.", 500);
   }
 
-  const startedAt = performance.now();
-  const result = await runRewrite({
-    text,
-    mode,
-    providerId: route.providerId,
-    apiKey,
-    model: route.model,
-  });
-  const ms = Math.round(performance.now() - startedAt);
+  const usedModelVersion = `${PROMPT_VERSION}:${usedRoute.providerId}:${usedRoute.model}`;
 
   if (!result.ok) {
     // Roll back the daily-counter reservation from check_and_bump_daily.
@@ -286,8 +318,8 @@ Deno.serve(async (req) => {
     await admin.from("usage_log").insert({
       user_id: user.id,
       mode,
-      provider: route.providerId,
-      model: route.model,
+      provider: usedRoute.providerId,
+      model: usedRoute.model,
       cache_hit: false,
       input_hash: inputHash,
       cost_credits: 0,
@@ -298,20 +330,32 @@ Deno.serve(async (req) => {
   }
 
   // ---- write cache + debit credits + log ----
+  // Cache under the model that actually produced the output (may be the
+  // fallback), so the entry is consistent with what was served.
   await admin.from("rewrite_cache").insert({
     input_hash: inputHash,
     mode,
-    model_version: modelVersion,
+    model_version: usedModelVersion,
     output: result.rewrite,
   });
 
-  await debitOrTrack(admin, user.id, mode, cost, false, route, inputHash, ms);
+  await debitOrTrack(
+    admin,
+    user.id,
+    mode,
+    cost,
+    false,
+    usedRoute,
+    inputHash,
+    ms,
+  );
 
   console.info(`${LOG} ok`, {
     mode,
     user: user.id,
-    provider: route.providerId,
-    model: route.model,
+    provider: usedRoute.providerId,
+    model: usedRoute.model,
+    fallback: usedRoute !== route,
     ms,
   });
   const ok: RewriteResponse = {

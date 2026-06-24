@@ -32,6 +32,24 @@ export const MODE_ROUTING: Record<Mode, ModeRoute> = {
   },
 };
 
+// Fallback routes — tried ONLY when the primary provider call fails (e.g.
+// OpenRouter out of balance, rate-limited, or down). A paid rewrite degrades
+// gracefully to Groq instead of hard-failing the user. Groq is the safety net
+// because its key is always present and it bills separately from OpenRouter, so
+// an OpenRouter outage/empty-balance can't take roast down too. Roast loses some
+// taste on llama-70B but still returns a first-person roast.
+export const MODE_FALLBACK: Partial<Record<Mode, ModeRoute>> = {
+  roast: {
+    providerId: "groq",
+    apiKeyEnv: "GROQ_API_KEY",
+    model: "llama-3.3-70b-versatile",
+  },
+};
+
 export function routeForMode(mode: Mode): ModeRoute {
   return MODE_ROUTING[mode];
+}
+
+export function fallbackForMode(mode: Mode): ModeRoute | null {
+  return MODE_FALLBACK[mode] ?? null;
 }

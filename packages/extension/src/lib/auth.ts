@@ -122,7 +122,37 @@ export async function signOut(): Promise<void> {
 export async function getSession(): Promise<Session | null> {
   const raw = await chrome.storage.local.get(SESSION_KEY);
   const s = raw[SESSION_KEY] as Session | undefined;
-  return s ?? null;
+  if (!s) return null;
+
+  // Guard against a cross-project session. If the build's backend changed
+  // (e.g. a sandbox build was swapped for the prod build at the same install,
+  // so chrome.storage carried over), the stored token was issued by a DIFFERENT
+  // Supabase project. Using its user_id against this project's backend silently
+  // breaks everything downstream — most painfully, a purchase made under that
+  // foreign user_id can never be credited here. Purge it and force a fresh
+  // sign-in against the correct project.
+  if (!tokenBelongsToProject(s.accessToken)) {
+    console.warn(`${LOG} stored session is for a different project — purging`);
+    await chrome.storage.local.remove(SESSION_KEY);
+    return null;
+  }
+  return s;
+}
+
+// A Supabase access token's `iss` claim is `${SUPABASE_URL}/auth/v1`. Accept the
+// session only if it was issued by the project this build targets. On any decode
+// failure we keep the session (fail-open) rather than log a valid user out over
+// a parsing hiccup — the issuer mismatch is the specific case we're guarding.
+function tokenBelongsToProject(jwt: string): boolean {
+  try {
+    const payload = jwt.split(".")[1];
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    const claims = JSON.parse(json) as { iss?: string };
+    if (!claims.iss) return true;
+    return claims.iss.startsWith(SUPABASE_URL);
+  } catch {
+    return true;
+  }
 }
 
 /**
