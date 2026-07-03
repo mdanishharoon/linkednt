@@ -1,30 +1,43 @@
-import { Ico } from "../icons";
-import { PHRASES } from "@/lib/content";
+"use client";
+
+import { useState } from "react";
+
+const VIDEO_ID = "RF4EWo0Sm1o";
 
 export function Phrasebook() {
+  // Lazy "facade": show a poster + our own play button, and only mount the
+  // real YouTube iframe once the user clicks (which also autoplays it). Keeps
+  // YouTube's player JS off the page until it's wanted.
+  const [playing, setPlaying] = useState(false);
   return (
     <section className="section" id="phrasebook">
       <div className="container">
-        <div className="reveal" style={{ maxWidth: 640 }}>
-          <span className="eyebrow muted">The phrasebook</span>
-          <h2 className="h2" style={{ marginTop: 14 }}>
-            Corporate to English, the short version.
-          </h2>
-          <p className="lede" style={{ marginTop: 16 }}>
-            Some of the classics. The extension knows about nine thousand
-            more of these, but you get the idea.
-          </p>
-        </div>
-        <div className="pb reveal">
-          {PHRASES.map(([said, meant], i) => (
-            <div className="pb-row" key={i}>
-              <div className="pb-said strike">{said}</div>
-              <div className="pb-arrow">
-                <Ico.arrow />
-              </div>
-              <div className="pb-meant">{meant}</div>
-            </div>
-          ))}
+        <div className="pb-video reveal">
+          {playing ? (
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}?autoplay=1&rel=0`}
+              title="linkedn’t launch video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          ) : (
+            <button
+              type="button"
+              className="pb-facade"
+              onClick={() => setPlaying(true)}
+              aria-label="Play the linkedn’t launch video"
+              style={{
+                backgroundImage: `url(https://i.ytimg.com/vi/${VIDEO_ID}/maxresdefault.jpg)`,
+              }}
+            >
+              <span className="pb-play" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="32" height="32">
+                  <path d="M8 5v14l11-7z" fill="currentColor" />
+                </svg>
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </section>

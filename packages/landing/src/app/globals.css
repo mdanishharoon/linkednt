@@ -1002,45 +1002,82 @@ a {
   }
 }
 
-/* ── phrasebook ── */
-.pb {
-  margin-top: 48px;
+/* ── launch video ── */
+.pb-video {
+  position: relative;
+  aspect-ratio: 16 / 9;
   border: 1px solid var(--line);
   border-radius: 18px;
   overflow: hidden;
-  background: #fff;
+  background: #000;
   box-shadow: var(--shadow-sm);
 }
-.pb-row {
-  display: grid;
-  grid-template-columns: 1fr 44px 1fr;
-  align-items: center;
-  gap: 18px;
-  padding: 19px 26px;
-  border-bottom: 1px solid var(--line-2);
+.pb-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
-.pb-row:last-child {
-  border-bottom: 0;
-}
-.pb-row:nth-child(even) {
-  background: #fbfaf8;
-}
-.pb-said {
-  font-size: 16.5px;
-  color: var(--muted);
-  font-style: italic;
-}
-.pb-arrow {
+/* branded facade shown until the viewer clicks play */
+.pb-facade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  cursor: var(--cursor), pointer;
+  background-color: #000;
+  background-size: cover;
+  background-position: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--blue);
 }
-.pb-meant {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--ink);
-  letter-spacing: -0.01em;
+.pb-facade::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.12),
+    rgba(0, 0, 0, 0.46)
+  );
+  transition: background 0.2s ease;
+}
+.pb-facade:hover::after {
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 0, 0, 0.04),
+    rgba(0, 0, 0, 0.34)
+  );
+}
+.pb-play {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  padding-left: 4px; /* optically centre the triangle */
+  border-radius: 999px;
+  color: #fff;
+  background: var(--blue);
+  box-shadow:
+    0 8px 24px -6px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition:
+    transform 0.16s cubic-bezier(0.2, 0.7, 0.3, 1),
+    background 0.16s;
+}
+.pb-facade:hover .pb-play {
+  transform: scale(1.08);
+  background: var(--blue-700);
+}
+.pb-facade:active .pb-play {
+  transform: scale(0.98);
 }
 
 /* ── faq ── */
