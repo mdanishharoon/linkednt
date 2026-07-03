@@ -1478,6 +1478,8 @@ a {
 }
 .pack {
   position: relative;
+  display: flex;
+  flex-direction: column;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -1550,6 +1552,8 @@ a {
   line-height: 1.5;
   color: var(--muted);
   margin: 0 0 22px;
+  /* fill remaining space so every card's button sits on the same baseline */
+  flex: 1 1 auto;
 }
 /* same treatment as the landing .btn-blue, full-width */
 .pack-buy {
