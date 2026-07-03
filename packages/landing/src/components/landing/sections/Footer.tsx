@@ -12,6 +12,14 @@ const DISCLAIMERS = [
   "Humbled to announce this disclaimer has become a journey. Grateful for everyone who clicked. 🙏",
 ];
 
+// Bottom-right easter egg: escalates on each click, then stops.
+const POT = [
+  "hi?",
+  "there’s no pot of gold down here",
+  "now get the fuck out of my sight before i demolish you",
+  "I can still see you mini me",
+];
+
 const COLS: [string, [string, string][]][] = [
   [
     "Product",
@@ -33,6 +41,7 @@ const COLS: [string, [string, string][]][] = [
 
 export function Footer() {
   const [d, setD] = useState(0);
+  const [pot, setPot] = useState(0);
   return (
     <footer className="footer">
       <div className="container">
@@ -81,10 +90,12 @@ export function Footer() {
           >
             {DISCLAIMERS[d]}
           </span>
-          <span style={{ marginLeft: "auto" }}>
-            <a href="/privacy" style={{ fontWeight: 600 }}>
-              Privacy
-            </a>
+          <span
+            className="footer-disclaimer"
+            style={{ marginLeft: "auto", fontWeight: 600 }}
+            onClick={() => setPot((i) => Math.min(i + 1, POT.length - 1))}
+          >
+            {POT[pot]}
           </span>
         </div>
       </div>
