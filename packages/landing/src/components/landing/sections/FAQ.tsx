@@ -13,9 +13,9 @@ export function FAQ() {
           className="reveal center"
           style={{ maxWidth: 620, margin: "0 auto" }}
         >
-          <span className="eyebrow muted">Questions, answered honestly</span>
+          <span className="eyebrow muted">The FAQ</span>
           <h2 className="h2" style={{ marginTop: 14 }}>
-            The fine print, in plain English.
+            Actual answers. No &ldquo;great question!&rdquo;
           </h2>
         </div>
         <div className="faq reveal">

@@ -11,8 +11,8 @@ export function Phrasebook() {
             Corporate to English, the short version.
           </h2>
           <p className="lede" style={{ marginTop: 16 }}>
-            A few translations linkedn&rsquo;t makes in its sleep. There are
-            roughly nine thousand more.
+            Some of the classics. The extension knows about nine thousand
+            more of these, but you get the idea.
           </p>
         </div>
         <div className="pb reveal">

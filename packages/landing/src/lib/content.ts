@@ -21,6 +21,9 @@ export type VoiceId = "roast" | "summarise" | "strip";
 
 export type Voice = { id: VoiceId; label: string; blurb: string };
 
+export const CWS_URL =
+  "https://chromewebstore.google.com/detail/caaploddknipkadjobnbhginlgfhbhjg";
+
 export const VOICES: Voice[] = [
   {
     id: "roast",
@@ -162,36 +165,54 @@ export const POSTS: Post[] = [
 ];
 
 export const PHRASES: [string, string][] = [
-  ["“I’m humbled and honored…”", "Look at me."],
-  ["“Open to new opportunities”", "Unemployed since March."],
-  ["“We’re like a family here”", "You will cry in the bathroom."],
-  ["“Let’s circle back on this”", "I am begging you to forget this."],
-  ["“Passionate about what I do”", "My job is my entire personality."],
-  ["“Comfortable wearing many hats”", "Three jobs, one salary."],
-  ["“Fast-paced environment”", "You’ll find out why the role is open."],
-  ["“Thoughts? 👇”", "I am so alone."],
+  ["“I’m humbled and honored…”", "I am a literal chud."],
+  [
+    "“Open to new opportunities”",
+    "I have applied to 340 jobs, including my old one.",
+  ],
+  [
+    "“We’re like a family here”",
+    "Your grandma’s funeral comes out of your PTO.",
+  ],
+  [
+    "“Let’s circle back on this”",
+    "Bring this up again and I will fake my own death.",
+  ],
+  [
+    "“Passionate about what I do”",
+    "I said ‘let’s take this offline’ during my wedding vows.",
+  ],
+  [
+    "“Comfortable wearing many hats”",
+    "You will also be legal, IT, and — since Tuesday — the fire warden.",
+  ],
+  [
+    "“Fast-paced environment”",
+    "The last three hires lasted nine weeks. Combined.",
+  ],
+  ["“Thoughts? 👇”", "im so lonely."],
 ];
 
 export const FAQS: [string, string][] = [
   [
     "Does the person who posted get notified?",
-    "No. The translation happens only on your screen. They keep posting into the void, blissfully unaware that anyone can now read them clearly.",
+    "God, no. Everything happens in your browser, on your screen. The poster never finds out. Somewhere out there they are still thrilled to announce things.",
   ],
   [
     "What does it cost?",
-    "Your first 30 rewrites are free once you sign in. After that, credit packs start at $4, or you can bring your own API key and skip our servers entirely. No subscription either way.",
+    "Your first 30 rewrites are free after you sign in. Then credit packs from $4, or plug in your own API key and skip our servers completely. There's no subscription. We're not doing that to you.",
   ],
   [
     "Where does it work?",
-    "On linkedin.com. A Deslop button appears under each post in your feed; one click translates it in place, and “Show original” puts the slop back.",
+    "linkedin.com. Every post in your feed gets a Deslop button — click it and the translation replaces the post right there. “Show original” brings the slop back, if you miss it.",
   ],
   [
     "Do you read or store my data?",
-    "If you bring your own key, post text goes straight from your browser to your provider and we never see it. On credits, our server produces the rewrite and keeps only a hash for caching, never the plaintext. The privacy policy says all of this in even plainer English.",
+    "Bring your own key and the post text goes straight from your browser to your provider — it never touches us. On credits, our server does the rewrite and keeps a hash for caching, not the text. The privacy policy is short and you can actually read it, which we're weirdly proud of.",
   ],
   [
     "Could this get me in trouble at work?",
-    "Only if you start replying with the translations out loud. We handle the honesty; restraint is on you.",
+    "The extension can't get you in trouble. Pasting a translation into the comments absolutely can. One of these is a you problem.",
   ],
 ];
 

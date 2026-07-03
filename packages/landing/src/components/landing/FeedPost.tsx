@@ -3,8 +3,9 @@
 // FeedPost.tsx — a LinkedIn post card with the extension's real affordance:
 // a Deslop action in the action bar that renders the translation card in
 // place, and a Show original pill inside the card to flip back.
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Avatar, Ico } from "./icons";
+import { ClickSpark, type SparkHandle } from "./ClickSpark";
 import { TranslationCard } from "./TranslationCard";
 
 export function FeedPost({
@@ -31,9 +32,11 @@ export function FeedPost({
   follow?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const sparks = useRef<SparkHandle>(null);
 
   return (
     <div className="post">
+      <ClickSpark ref={sparks} />
       <div className="post-head">
         <Avatar variant={variant} src={avatar} invert={avatarInvert} />
         <div style={{ minWidth: 0 }}>
@@ -87,18 +90,21 @@ export function FeedPost({
 
       <div className="post-actions">
         <span className="pa">
-          <Ico.thumb /> Like
+          <Ico.thumb /> <span className="pa-label">Like</span>
         </span>
         <span className="pa">
-          <Ico.comment /> Comment
+          <Ico.comment /> <span className="pa-label">Comment</span>
         </span>
         <span className="pa">
-          <Ico.repost /> Repost
+          <Ico.repost /> <span className="pa-label">Repost</span>
         </span>
         <button
           className={"pa pa-deslop" + (open ? " on" : "")}
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={(e) => {
+            sparks.current?.burst(e);
+            setOpen((o) => !o);
+          }}
         >
           <span className="deslop-chip" aria-hidden="true">
             +

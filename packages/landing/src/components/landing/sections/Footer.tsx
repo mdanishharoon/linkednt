@@ -48,8 +48,8 @@ export function Footer() {
                 lineHeight: 1.5,
               }}
             >
-              The browser extension that translates LinkedIn into the language
-              humans actually speak.
+              A Chrome extension that translates LinkedIn posts back into
+              whatever the person was actually trying to say.
             </p>
           </div>
           {COLS.map(([h, items]) => (

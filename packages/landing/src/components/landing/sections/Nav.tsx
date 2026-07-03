@@ -3,18 +3,21 @@
 import { useEffect, useState } from "react";
 import { Logo } from "../Logo";
 import { Ico } from "../icons";
+import { CWS_URL } from "@/lib/content";
 
 export function Nav() {
-  const [scrolled, setScrolled] = useState(false);
+  // past the hero's first beats the bar collapses into a floating pill,
+  // keeping the Add to Chrome CTA on screen the whole way down
+  const [pill, setPill] = useState(false);
   useEffect(() => {
-    const on = () => setScrolled(window.scrollY > 8);
+    const on = () => setPill(window.scrollY > 64);
     on();
     window.addEventListener("scroll", on, { passive: true });
     return () => window.removeEventListener("scroll", on);
   }, []);
 
   return (
-    <nav className={"nav" + (scrolled ? " scrolled" : "")}>
+    <nav className={"nav" + (pill ? " pill" : "")}>
       <div className="container nav-inner">
         <a href="#top">
           <Logo size={23} />
@@ -26,7 +29,12 @@ export function Nav() {
           <a href="#faq">FAQ</a>
         </div>
         <div className="nav-right">
-          <a className="btn btn-blue btn-sm" href="#install">
+          <a
+            className="btn btn-blue btn-sm"
+            href={CWS_URL}
+            target="_blank"
+            rel="noreferrer"
+          >
             <Ico.puzzle width="16" height="16" /> Add to Chrome
           </a>
         </div>

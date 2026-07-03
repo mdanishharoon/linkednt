@@ -24,6 +24,8 @@
     0 2px 6px rgba(20, 25, 30, 0.06), 0 12px 28px -12px rgba(20, 25, 30, 0.18);
   --shadow-lg:
     0 4px 12px rgba(20, 25, 30, 0.07), 0 28px 60px -24px rgba(20, 25, 30, 0.28);
+  /* the site cursor: a hand flipping off the feed (hotspot = fingertip) */
+  --cursor: url("/deslop-cursor.png") 9 0;
 }
 
 * {
@@ -31,6 +33,7 @@
 }
 html {
   scroll-behavior: smooth;
+  cursor: var(--cursor), default;
 }
 body {
   margin: 0;
@@ -133,7 +136,7 @@ a {
   letter-spacing: -0.01em;
   border-radius: 9px;
   padding: 6px 12px;
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
   border: 1.5px solid transparent;
   transition:
     transform 0.14s cubic-bezier(0.2, 0.7, 0.3, 1),
@@ -205,26 +208,53 @@ a {
   z-index: 50;
   background: rgba(255, 255, 255, 0.86);
   backdrop-filter: saturate(1.4) blur(12px);
-  border-bottom: 1px solid transparent;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+  transition: background 0.3s;
 }
-.nav.scrolled {
-  border-bottom-color: var(--line);
-  box-shadow: 0 1px 0 rgba(20, 25, 30, 0.02);
+/* scrolled: the bar hands off to a floating pill so the CTA never leaves.
+   Clicks outside the pill fall through to the page. */
+.nav.pill {
+  background: transparent;
+  backdrop-filter: none;
+  pointer-events: none;
 }
 .nav-inner {
   height: 64px;
-  display: flex;
+  display: grid;
+  /* auto 1fr auto centers the links in the space between logo and CTA,
+     which reads centered; true pill-center leaves lopsided gaps because
+     the logo and the button aren't the same width */
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 28px;
+  border: 1px solid transparent;
+  /* matches the .btn radius family so the pill and its CTA read as one kit */
+  border-radius: 10px;
+  transition:
+    max-width 0.4s cubic-bezier(0.2, 0.7, 0.3, 1),
+    height 0.3s cubic-bezier(0.2, 0.7, 0.3, 1),
+    transform 0.3s cubic-bezier(0.2, 0.7, 0.3, 1),
+    padding 0.3s,
+    background 0.3s,
+    border-color 0.3s,
+    box-shadow 0.3s;
+}
+.nav.pill .nav-inner {
+  pointer-events: auto;
+  height: 50px;
+  max-width: 690px;
+  /* transform, not margin: a margin would collapse through the transparent
+     sticky bar (pinned at top: 0) and vanish above the viewport */
+  transform: translateY(18px);
+  padding: 0 13px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-color: var(--line);
+  box-shadow: var(--shadow-md);
 }
 .nav-links {
   display: flex;
   align-items: center;
+  justify-self: center;
   gap: 26px;
-  margin-left: 14px;
 }
 .nav-links a {
   font-size: 14.5px;
@@ -236,7 +266,7 @@ a {
   color: var(--blue);
 }
 .nav-right {
-  margin-left: auto;
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: 18px;
@@ -244,6 +274,8 @@ a {
 
 /* ── feed post ── */
 .post {
+  /* anchors the ClickSpark canvas overlay */
+  position: relative;
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -254,7 +286,7 @@ a {
     transform 0.2s;
 }
 .post.interactive {
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
 }
 .post.interactive:hover {
   box-shadow: var(--shadow-lg);
@@ -419,7 +451,7 @@ a {
   border-radius: 999px;
   background: rgba(10, 102, 194, 0.08);
   color: #0a66c2;
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
   font: inherit;
   font-size: 12px;
   font-weight: 700;
@@ -468,7 +500,7 @@ a {
 .pa-deslop {
   border: 0;
   background: none;
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
   font: inherit;
   font-size: 13.5px;
   font-weight: 600;
@@ -522,7 +554,7 @@ a {
   background: none;
   padding: 0;
   font: inherit;
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
   color: rgba(255, 255, 255, 0.4);
   text-decoration: line-through;
   text-decoration-color: rgba(255, 255, 255, 0.32);
@@ -722,7 +754,7 @@ a {
   border: 0;
   border-top: 1px solid var(--line-2);
   background: none;
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
   font: inherit;
   text-align: left;
   transition: background 0.14s;
@@ -1000,7 +1032,7 @@ a {
   width: 100%;
   background: none;
   border: 0;
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
   padding: 22px 4px;
   font-family: inherit;
   text-align: left;
@@ -1067,7 +1099,7 @@ a {
   border: 0;
   background: none;
   padding: 0;
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
   outline: none;
   transition:
     color 0.2s,
@@ -1089,7 +1121,7 @@ a {
 }
 
 .footer-disclaimer {
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
   user-select: none;
 }
 
@@ -1206,6 +1238,9 @@ a {
 /* hero card deck: auto-cycles every 6s, draggable both directions */
 .hero-deck {
   position: relative;
+  /* contain the cards' z-indexes (10–50) so they layer against each other,
+     not against the page — without this the front card outdraws the navbar */
+  isolation: isolate;
   /* tall enough for the two-paragraph thought-slop post at 7 clamped lines */
   height: 344px;
   touch-action: pan-y;
@@ -1258,7 +1293,7 @@ a {
   transition:
     width 0.25s,
     background 0.25s;
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
   padding: 0;
   border: 0;
 }
@@ -1287,6 +1322,14 @@ a {
   .nav-links {
     display: none;
   }
+  /* with the links row gone the CTA would auto-place into the middle
+     column; collapse the grid so it takes the right edge */
+  .nav-inner {
+    grid-template-columns: auto 1fr;
+  }
+  .nav.pill .nav-inner {
+    max-width: 344px;
+  }
 }
 @media (max-width: 560px) {
   .section {
@@ -1306,6 +1349,15 @@ a {
     grid-template-columns: 1fr 1fr;
   }
   .nav-right .desktop-only {
+    display: none;
+  }
+  /* four labeled actions don't fit a phone-width card; keep only the
+     Deslop label — it's the demo's interaction — and let the rest go
+     icon-only so the row can't outgrow the card */
+  .post .pa {
+    min-width: 0;
+  }
+  .post .pa-label {
     display: none;
   }
 }
@@ -1479,7 +1531,7 @@ a {
   background: var(--blue);
   color: #fff;
   border: 1.5px solid transparent;
-  cursor: pointer;
+  cursor: var(--cursor), pointer;
   text-decoration: none;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.22),

@@ -6,7 +6,8 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { FeedPost } from "../FeedPost";
 import { Ico } from "../icons";
-import { HERO_POST, POKEMON_POST, POSTS } from "@/lib/content";
+import { Magnet } from "../Magnet";
+import { CWS_URL, HERO_POST, POKEMON_POST, POSTS } from "@/lib/content";
 
 const CARDS = [POKEMON_POST, HERO_POST, ...POSTS];
 
@@ -131,14 +132,22 @@ export function Hero() {
             actually meant.
           </h1>
           <p className="lede" style={{ marginTop: 20, maxWidth: 480 }}>
-            linkedn&rsquo;t quietly rewrites LinkedIn posts into plain, honest
-            English. The humblebrags, the &ldquo;thrilled to announce,&rdquo;
-            the 4am gratitude threads &mdash; translated, one click at a time.
+            It&rsquo;s a Chrome extension that rewrites LinkedIn posts into
+            what the person actually means. The guy who&rsquo;s
+            &ldquo;incredibly humbled to announce his next chapter&rdquo;? One
+            click, and the post just says he got laid off.
           </p>
           <div className="hero-cta">
-            <a className="btn btn-blue btn-lg" href="#install">
-              <Ico.puzzle /> Add to Chrome &mdash; it&rsquo;s free
-            </a>
+            <Magnet>
+              <a
+                className="btn btn-blue btn-lg"
+                href={CWS_URL}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Ico.puzzle /> Add to Chrome &mdash; it&rsquo;s free
+              </a>
+            </Magnet>
             <a className="btn btn-ghost btn-lg" href="#how">
               See how it works
             </a>

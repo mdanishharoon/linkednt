@@ -5,6 +5,8 @@
 // acknowledges your service.
 import { useState } from "react";
 import { Ico } from "../icons";
+import { Magnet } from "../Magnet";
+import { CWS_URL } from "@/lib/content";
 
 export function CTA() {
   const [dead, setDead] = useState<Record<string, boolean>>({});
@@ -47,16 +49,21 @@ export function CTA() {
             between the lines.
           </h2>
           <p className="cta-sub" style={{ position: "relative" }}>
-            Add linkedn&rsquo;t to Chrome and let the feed finally say what it
-            means.
+            Install it, open your feed, and hear what everyone&rsquo;s
+            actually been saying this whole time.
           </p>
-          <a
-            className="btn btn-onblue btn-lg"
-            href="#"
-            style={{ position: "relative" }}
-          >
-            <Ico.puzzle /> Add to Chrome &mdash; it&rsquo;s free
-          </a>
+          <div style={{ position: "relative" }}>
+            <Magnet>
+              <a
+                className="btn btn-onblue btn-lg"
+                href={CWS_URL}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Ico.puzzle /> Add to Chrome &mdash; it&rsquo;s free
+              </a>
+            </Magnet>
+          </div>
           <div
             style={{
               marginTop: 20,

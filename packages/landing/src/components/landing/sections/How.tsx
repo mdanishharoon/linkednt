@@ -2,9 +2,10 @@
 
 // How.tsx — the product demo. A faithful mini render of the extension popup
 // (voice picker) drives a feed of posts wearing the real translation card.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Logo, MiniBadge } from "../Logo";
 import { Avatar, Ico } from "../icons";
+import { ClickSpark, type SparkHandle } from "../ClickSpark";
 import { TranslationCard } from "../TranslationCard";
 import { DEMO_POST, VOICES, type DemoPost, type VoiceId } from "@/lib/content";
 
@@ -19,8 +20,11 @@ function DemoFeedPost({
   open: boolean;
   onToggle: () => void;
 }) {
+  const sparks = useRef<SparkHandle>(null);
+
   return (
     <div className="post">
+      <ClickSpark ref={sparks} />
       <div className="post-head">
         <Avatar
           variant={post.variant}
@@ -62,7 +66,10 @@ function DemoFeedPost({
         <button
           className={"pa pa-deslop" + (open ? " on" : "")}
           type="button"
-          onClick={onToggle}
+          onClick={(e) => {
+            sparks.current?.burst(e);
+            onToggle();
+          }}
         >
           <span className="deslop-chip" aria-hidden="true">
             +
@@ -87,9 +94,11 @@ export function How() {
             Pick a voice. Hit Deslop.
           </h2>
           <p className="lede" style={{ marginTop: 16 }}>
-            A <b style={{ color: "var(--ink)" }}>Deslop</b> button appears
-            under every post on LinkedIn. The popup sets how blunt the
-            translation gets: three voices, one post, try all three.
+            Install it and every post in your feed grows a{" "}
+            <b style={{ color: "var(--ink)" }}>Deslop</b> button. The popup
+            picks how mean you want the translation &mdash; plain English on
+            the safe end, full group-chat commentary on the other. Try all
+            three on the post below.
           </p>
         </div>
 
