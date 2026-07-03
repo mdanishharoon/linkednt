@@ -23,10 +23,10 @@ export function Nav() {
           <Logo size={23} />
         </a>
         <div className="nav-links">
-          <a href="#how">How it works</a>
-          <a href="#phrasebook">Phrasebook</a>
-          <a href="/pricing">Pricing</a>
-          <a href="#faq">FAQ</a>
+          <a href="#how">how?</a>
+          <a href="#phrasebook">what?</a>
+          <a href="/pricing">how much?</a>
+          <a href="#faq">faq</a>
         </div>
         <div className="nav-right">
           <a
