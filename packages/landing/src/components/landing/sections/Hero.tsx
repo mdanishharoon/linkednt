@@ -127,15 +127,16 @@ export function Hero() {
       <div className="container hero-grid">
         <div className="reveal in">
           <h1 className="h1">
-            See what they
+            &ldquo;Excited to announce&rdquo;
             <br />
-            actually meant.
+            No you&rsquo;re not.
           </h1>
           <p className="lede" style={{ marginTop: 20, maxWidth: 480 }}>
-            It&rsquo;s a Chrome extension that rewrites LinkedIn posts into
-            what the person actually means. The guy who&rsquo;s
-            &ldquo;incredibly humbled to announce his next chapter&rdquo;? One
-            click, and the post just says he got laid off.
+            You really aren&rsquo;t. You&rsquo;ve been drafting that
+            announcement for weeks, workshopping which word sounds the most
+            humbled. It&rsquo;s fine. Everyone&rsquo;s doing it.
+            linkedn&rsquo;t is a Chrome extension that detects LinkedIn LARP
+            and translates it.
           </p>
           <div className="hero-cta">
             <Magnet>

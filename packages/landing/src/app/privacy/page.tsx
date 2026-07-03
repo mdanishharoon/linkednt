@@ -47,7 +47,7 @@ export default function PrivacyPage() {
             <strong>Your API key</strong> for the provider you chose (Groq,
             OpenAI, Anthropic, Google Gemini, OpenRouter, or a custom
             OpenAI-compatible endpoint). Stored only in your browser&rsquo;s
-            local storage via
+            local storage via{" "}
             <code>chrome.storage.local</code>. Never sent to our servers.
           </li>
           <li>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
             account and grant you credits.
           </li>
           <li>
-            <strong>An OAuth session token</strong> stored in
+            <strong>An OAuth session token</strong> stored in{" "}
             <code>chrome.storage.local</code> in your browser, used as the
             Authorization header when our backend rewrites a post for you.
           </li>
@@ -197,7 +197,7 @@ export default function PrivacyPage() {
         <p>
           The linkednt.com website uses no analytics, no advertising cookies,
           and no tracking pixels. The extension does not set cookies. The only
-          persistent local data it uses is
+          persistent local data it uses is{" "}
           <code>chrome.storage.local</code> for your settings and OAuth session.
         </p>
       </section>

@@ -87,7 +87,9 @@ a {
   color: var(--muted-2);
 }
 .h1 {
-  font-size: clamp(40px, 6.1vw, 72px);
+  /* sized so “Excited to announce” holds one line in the hero column
+     (line width ≈ 10px per 1px of font size, column ≈ 560px) */
+  font-size: clamp(32px, 4.6vw, 54px);
   line-height: 1.02;
   letter-spacing: -0.035em;
   font-weight: 800;
@@ -558,7 +560,23 @@ a {
   color: rgba(255, 255, 255, 0.4);
   text-decoration: line-through;
   text-decoration-color: rgba(255, 255, 255, 0.32);
-  transition: color 0.18s;
+  /* width is pinned from JS so the confession morphs open smoothly */
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-align: left;
+  vertical-align: bottom;
+  transition:
+    color 0.18s,
+    width 0.32s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.mq-item .word-label {
+  display: inline-block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mq-item .word {
+    transition: color 0.18s;
+  }
 }
 .mq-item .word:hover {
   color: rgba(255, 255, 255, 0.62);
@@ -672,8 +690,19 @@ a {
   flex-direction: column;
   justify-content: center;
 }
-.demo-swap > .inner {
+.demo-swap .inner {
   animation: demofade 0.4s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+/* height morph for swapped content (MorphHeight) — the fade above handles
+   the content, this stops the container snapping to the new size */
+.morph-h {
+  overflow: hidden;
+  transition: height 0.42s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .morph-h {
+    transition: none;
+  }
 }
 @keyframes demofade {
   from {
@@ -1241,8 +1270,11 @@ a {
   /* contain the cards' z-indexes (10–50) so they layer against each other,
      not against the page — without this the front card outdraws the navbar */
   isolation: isolate;
-  /* tall enough for the two-paragraph thought-slop post at 7 clamped lines */
-  height: 344px;
+  /* measured: deck copy is length-normalized (keep slop 180–210 chars in
+     content.ts). Closed cards land 253–275px, but the OPEN state (header +
+     translation card + actions) peaks at 320px — size for that or the
+     action row spills past the card. Re-measure both states if this moves. */
+  height: 322px;
   touch-action: pan-y;
   user-select: none;
 }
@@ -1265,13 +1297,11 @@ a {
 .hero-card.front:active {
   cursor: grabbing;
 }
+/* cards sit at their natural height inside the fixed deck region — no
+   stretching, so there's never dead air between the text and the action
+   bar, in either the slop or the translation state */
 .hero-card .post {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-.hero-card .post-body {
-  flex: 1;
+  height: auto;
 }
 .hero-card .slop-text {
   display: -webkit-box;
@@ -1350,6 +1380,10 @@ a {
   }
   .nav-right .desktop-only {
     display: none;
+  }
+  /* narrower cards wrap longer; measured max 339px (open state) at 390w */
+  .hero-deck {
+    height: 342px;
   }
   /* four labeled actions don't fit a phone-width card; keep only the
      Deslop label — it's the demo's interaction — and let the rest go

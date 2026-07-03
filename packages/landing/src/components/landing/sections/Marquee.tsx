@@ -2,7 +2,7 @@
 
 // Marquee.tsx — the buzzword band. Easter egg: click a buzzword and it
 // confesses what it means for a moment, then composes itself.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BUZZ } from "@/lib/content";
 
 const TRUTH: Record<string, string> = {
@@ -28,11 +28,21 @@ const TRUTH: Record<string, string> = {
 
 function Word({ word }: { word: string }) {
   const [honest, setHonest] = useState(false);
+  const btn = useRef<HTMLButtonElement>(null);
+  const label = useRef<HTMLSpanElement>(null);
   const timer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
+  // pin the button to its label's width so the confession morphs open
+  // instead of shoving every word after it down the band
+  useLayoutEffect(() => {
+    if (btn.current && label.current)
+      btn.current.style.width = label.current.offsetWidth + "px";
+  }, [honest]);
+
   return (
     <button
+      ref={btn}
       type="button"
       className={"word" + (honest ? " truth" : "")}
       onClick={() => {
@@ -41,7 +51,9 @@ function Word({ word }: { word: string }) {
         timer.current = window.setTimeout(() => setHonest(false), 2400);
       }}
     >
-      {honest ? (TRUTH[word] ?? word) : word}
+      <span ref={label} className="word-label">
+        {honest ? (TRUTH[word] ?? word) : word}
+      </span>
     </button>
   );
 }

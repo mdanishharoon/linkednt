@@ -24,6 +24,13 @@ export type Voice = { id: VoiceId; label: string; blurb: string };
 export const CWS_URL =
   "https://chromewebstore.google.com/detail/caaploddknipkadjobnbhginlgfhbhjg";
 
+// Absolute site origin for canonical URLs, OG images and structured data.
+// Cloudflare Pages doesn't set VERCEL_URL; override with NEXT_PUBLIC_SITE_URL.
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
+  "https://linkednt.com";
+
 export const VOICES: Voice[] = [
   {
     id: "roast",
@@ -96,7 +103,7 @@ export const POSTS: Post[] = [
     variant: "b",
     time: "4h",
     avatar: unsplash("1494790108377-be9c29b29330"),
-    slop: "Woke up at 4am. Gym. Gratitude journal. Closed a 7-figure deal before most people hit snooze. Discipline beats motivation every single time. 💪",
+    slop: "Woke up at 4am. Cold shower. Gym. Gratitude journal. Closed a 7-figure deal before most people even hit snooze. Discipline beats motivation, every single time. What’s your morning routine? 👇💪",
     honest: "The deal was $1,100 and I cried in the gym parking lot.",
   },
   {
@@ -105,7 +112,7 @@ export const POSTS: Post[] = [
     variant: "d",
     time: "1d",
     avatar: unsplash("1472099645785-5658abf4ff4e"),
-    slop: "We didn’t lose the account. We unlocked a powerful lesson in resilience, grit, and the beauty of the journey. Forever grateful. 🙏",
+    slop: "We didn’t lose the account. We unlocked a powerful lesson in resilience, grit, and the beauty of the journey. To the client who chose our competitor: thank you for the growth. Forever grateful. 🙏",
     honest: "We lost the account because I forgot the client’s name on the call.",
   },
   {
@@ -114,7 +121,7 @@ export const POSTS: Post[] = [
     variant: "",
     time: "9h",
     avatar: unsplash("1500648767791-00dcc994a43e"),
-    slop: "Yesterday my 4-year-old refused to eat her broccoli. What happened next was a masterclass in B2B negotiation. A thread on closing deals, from someone who closes bedtime. 🧵👇",
+    slop: "Yesterday my 4-year-old refused to eat her broccoli. What happened next was a masterclass in B2B negotiation. A thread on objection handling, closing deals, and bedtime, from someone who closes all three. 🧵👇",
     honest: "I used my child for engagement. She gets nothing.",
   },
   {
@@ -123,7 +130,7 @@ export const POSTS: Post[] = [
     variant: "c",
     time: "6h",
     avatar: unsplash("1573496359142-b8d87734a5a2"),
-    slop: "Seeking a passionate, self-starting rockstar ninja to wear many hats in our fast-paced, family-like startup. Competitive exposure on offer for the right hustler!",
+    slop: "Seeking a passionate, self-starting rockstar ninja to wear many hats in our fast-paced, family-like startup. Competitive exposure on offer for the right hustler. No clock-watchers, please. 🚀",
     honest: "Four jobs, one “salary”. The last hire lasted nine days.",
   },
   {
@@ -132,7 +139,7 @@ export const POSTS: Post[] = [
     variant: "",
     time: "2d",
     avatar: unsplash("1560250097-0b93528c311a"),
-    slop: "Had to let 30% of the team go today. Hardest decision of my career. But comfort is the enemy of greatness. We move different here. Onward. 🦅",
+    slop: "Had to let 30% of the team go today. Hardest decision of my career. I barely slept on the flight to Cabo. But comfort is the enemy of greatness. We move different here. Onward. 🦅",
     honest: "I bought a boat in March.",
   },
   {
@@ -141,7 +148,7 @@ export const POSTS: Post[] = [
     variant: "",
     time: "1d",
     avatar: unsplash("1633332755192-727a05c4013d"),
-    slop: "Hard work beats talent when talent doesn’t work hard. But talent that works hard beats hard work without talent. Read that again. 🧠",
+    slop: "Hard work beats talent when talent doesn’t work hard. But talent that works hard beats hard work without talent. Read that again. Then read it one more time. Let it sink in. 🧠",
     honest: "Read that again. It still says nothing.",
   },
   {
@@ -150,7 +157,7 @@ export const POSTS: Post[] = [
     variant: "b",
     time: "5h",
     avatar: unsplash("1438761681033-6461ffad8d80"),
-    slop: "A candidate showed up 3 minutes late to our interview yesterday. I hired them on the spot. Here’s why that broke every rule in my hiring playbook 🧵",
+    slop: "A candidate showed up 3 minutes late to our interview yesterday. I hired them on the spot. Here’s why that one moment broke every single rule in my hiring playbook, and why I’d do it again. 🧵",
     honest: "There was no candidate. There is no playbook.",
   },
   {
@@ -159,7 +166,7 @@ export const POSTS: Post[] = [
     variant: "c",
     time: "7h",
     avatar: unsplash("1519085360753-af0119f7cbe7"),
-    slop: "Humbled and speechless to be named a LinkedIn Top Voice. None of this happens without YOU — my incredible community. We did this together. 🙏✨",
+    slop: "Humbled and speechless to be named a LinkedIn Top Voice. When I started posting daily insights, nobody believed in the vision. None of this happens without YOU, my incredible community. We did this together. 🙏✨",
     honest: "I post six times a day and my last real conversation was in 2019.",
   },
 ];
@@ -197,6 +204,10 @@ export const FAQS: [string, string][] = [
   [
     "Does the person who posted get notified?",
     "God, no. Everything happens in your browser, on your screen. The poster never finds out. Somewhere out there they are still thrilled to announce things.",
+  ],
+  [
+    "Why do you call it slop?",
+    "Because that's what it is. LinkedIn slop is the mass-produced, vaguely AI-flavored corporate speak the feed runs on — everyone LARPing as a keynote speaker between layoffs. linkedn't is a slop translator: it turns the performance back into plain English.",
   ],
   [
     "What does it cost?",

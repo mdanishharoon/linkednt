@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { Logo, MiniBadge } from "../Logo";
 import { Avatar, Ico } from "../icons";
 import { ClickSpark, type SparkHandle } from "../ClickSpark";
+import { MorphHeight } from "../MorphHeight";
 import { TranslationCard } from "../TranslationCard";
 import { DEMO_POST, VOICES, type DemoPost, type VoiceId } from "@/lib/content";
 
@@ -42,7 +43,7 @@ function DemoFeedPost({
         </div>
         <span className="post-follow">+ Follow</span>
       </div>
-      <div className="post-body demo-swap">
+      <MorphHeight className="post-body demo-swap">
         {open ? (
           // key includes the voice so switching voices replays the fade.
           <div className="inner" key={voice}>
@@ -55,7 +56,7 @@ function DemoFeedPost({
             <div className="slop-text">{post.slop}</div>
           </div>
         )}
-      </div>
+      </MorphHeight>
       <div className="post-actions">
         <span className="pa">
           <Ico.thumb /> Like
@@ -95,7 +96,7 @@ export function How() {
           </h2>
           <p className="lede" style={{ marginTop: 16 }}>
             Install it and every post in your feed grows a{" "}
-            <b style={{ color: "var(--ink)" }}>Deslop</b> button. The popup
+            <b style={{ color: "var(--ink)" }}>Deslop</b>{" "}button. The popup
             picks how mean you want the translation &mdash; plain English on
             the safe end, full group-chat commentary on the other. Try all
             three on the post below.
